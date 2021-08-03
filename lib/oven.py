@@ -27,15 +27,12 @@ class Output(object):
             log.warning(msg)
             self.active = False
 
-    def heat(self,sleepfor, tuning=False):
-        self.GPIO.output(config.gpio_heat, self.GPIO.HIGH)
-        if tuning:
-            return
-        time.sleep(sleepfor)
+    def heat(self,percent, tuning=False):
+        # some new code here
+        pass
 
     def cool(self,sleepfor):
         '''no active cooling, so sleep'''
-        self.GPIO.output(config.gpio_heat, self.GPIO.LOW)
         time.sleep(sleepfor)
 
 # FIX - Board class needs to be completely removed
@@ -210,23 +207,6 @@ class Oven(threading.Thread):
     def abort_run(self):
         self.reset()
 
-    def kiln_must_catch_up(self):
-        '''shift the whole schedule forward in time by one time_step
-        to wait for the kiln to catch up'''
-        if config.kiln_must_catch_up == True:
-            temp = self.board.temp_sensor.temperature + \
-                config.thermocouple_offset
-            # kiln too cold, wait for it to heat up
-            if self.target - temp > config.kiln_must_catch_up_max_error:
-                log.info("kiln must catch up, too cold, shifting schedule")
-                self.start_time = self.start_time + \
-                    datetime.timedelta(seconds=self.time_step)
-            # kiln too hot, wait for it to cool down
-            if temp - self.target > config.kiln_must_catch_up_max_error:
-                log.info("kiln must catch up, too hot, shifting schedule")
-                self.start_time = self.start_time + \
-                    datetime.timedelta(seconds=self.time_step)
-
     def update_runtime(self):
         runtime_delta = datetime.datetime.now() - self.start_time
         if runtime_delta.total_seconds() < 0:
@@ -284,13 +264,11 @@ class Oven(threading.Thread):
                 time.sleep(1)
                 continue
             if self.state == "RUNNING":
-                self.kiln_must_catch_up()
                 self.update_runtime()
                 self.update_target_temp()
                 self.heat_then_cool()
                 self.reset_if_emergency()
                 self.reset_if_schedule_ended()
-
 
 class SimulatedOven(Oven):
 
@@ -397,8 +375,8 @@ class RealOven(Oven):
         pid = self.pid.compute(self.target,
                                self.board.temp_sensor.temperature +
                                config.thermocouple_offset)
-        heat_on = float(self.time_step * pid)
-        heat_off = float(self.time_step * (1 - pid))
+        heat_on = pid
+        heat_off = self.time_step
 
         # self.heat is for the front end to display if the heat is on
         self.heat = 0.0

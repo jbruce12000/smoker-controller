@@ -50,8 +50,7 @@ gpio_sensor_di = 10 # only used with max31856
 # Every N seconds a decision is made about switching the relay[s] 
 # on & off and for how long. The thermocouple is read 
 # temperature_average_samples times during and the average value is used.
-sensor_time_wait = 2
-
+sensor_time_wait = 10 
 
 ########################################################################
 #
@@ -107,15 +106,7 @@ time_scale_profile  = "m" # s = Seconds | m = Minutes | h = Hours - Enter and vi
 # naturally cool off. If your SSR has failed/shorted/closed circuit, this
 # means your kiln receives full power until your house burns down.
 # this should not replace you watching your kiln or use of a kiln-sitter
-emergency_shutoff_temp = 2264 #cone 7
-
-# If the kiln cannot heat or cool fast enough and is off by more than
-# kiln_must_catch_up_max_error  the entire schedule is shifted until
-# the desired temperature is reached. If your kiln cannot attain the
-# wanted temperature, the schedule will run forever. This is often used
-# for heating as fast as possible in a section of a kiln schedule/profile.
-kiln_must_catch_up = True
-kiln_must_catch_up_max_error = 10 #degrees
+emergency_shutoff_temp = 1100 # burned pizza
 
 # thermocouple offset
 # If you put your thermocouple in ice water and it reads 36F, you can

@@ -1,4 +1,4 @@
-Kiln Controller
+Smoker Controller
 ==========
 
 Turns a Raspberry Pi into an inexpensive, web-enabled smoker controller.
@@ -6,19 +6,13 @@ Turns a Raspberry Pi into an inexpensive, web-enabled smoker controller.
 ## Features
 
   * easy to create new kiln schedules and edit / modify existing schedules
-  * no limit to runtime - fire for days if you want
+  * no limit to runtime - smoke for days if you want
   * view status from multiple devices at once - computer, tablet etc
-  * firing cost estimate
   * NIST-linearized conversion for accurate K type thermocouple readings
-  * supports PID parameters you tune to your kiln
-  * monitors temperature in kiln after schedule has ended
+  * supports PID parameters you tune to your smoker
   * api for starting and stopping at any point in a schedule
   * supports MAX31856 and MAX31855 thermocouple boards
   * support for K, J, N, R, S, T, E, or B type thermocouples
-  * accurate simulation
-  * support for shifting schedule when kiln cannot heat quickly enough
-  * support for preventing initial integral wind-up
-
 
 **Run Kiln Schedule**
 
