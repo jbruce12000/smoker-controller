@@ -1,6 +1,8 @@
 Smoker Controller
 ==========
 
+This is not ready for prime-time. I just forked the project a few days ago. I'm actively working to create a smoker temperature controller using a RPI, thermocouple, and a servo to control a flapper on the exhaust of a reverse offset smoker. I've successfully used the software to control kilns and ovens. This fork will be specific to smokers.
+
 Turns a Raspberry Pi into an inexpensive, web-enabled smoker controller.
 
 ## Features
