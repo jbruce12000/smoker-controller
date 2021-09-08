@@ -1,5 +1,5 @@
 import logging
-from lib.max31856 import MAX31856
+#from lib.max31856 import MAX31856
 
 ########################################################################
 #
@@ -26,16 +26,19 @@ currency_type   = "$"   # Currency Symbol to show when calculating cost to run j
 #   These were tested on a Pi B Rev2 but of course you
 #   can use whichever GPIO you prefer/have available.
 
-### Outputs
-gpio_heat = 23  # Switches zero-cross solid-state-relay
+### Servo output
+gpio_servo = 24  # gpio pin controlling servo
+min_servo_angle = -50
+max_servo_angle = 50
+invert_servo = False
 
-### Thermocouple Adapter selection:
+### Thermocouple interface selection:
 #   max31855 - bitbang SPI interface
 #   max31856 - bitbang SPI interface. must specify thermocouple_type.
 max31855 = 1
 max31856 = 0
 # see lib/max31856.py for other thermocouple_type, only applies to max31856
-thermocouple_type = MAX31856.MAX31856_S_TYPE
+#thermocouple_type = MAX31856.MAX31856_S_TYPE
 
 ### Thermocouple Connection (using bitbang interfaces)
 gpio_sensor_cs = 27

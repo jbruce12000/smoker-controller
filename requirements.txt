@@ -6,3 +6,8 @@ gevent-websocket
 #RPi.GPIO
 Adafruit-MAX31855
 Adafruit-GPIO
+
+# for smoker - to control servo
+gpiozero
+RPi.GPIO
+pigpio
