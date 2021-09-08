@@ -1,24 +1,20 @@
-Kiln Controller
+Smoker Controller
 ==========
+
+This is not ready for prime-time. I just forked the project a few days ago. I'm actively working to create a smoker temperature controller using a RPI, thermocouple, and a servo to control a flapper on the exhaust of a reverse offset smoker. I've successfully used the software to control kilns and ovens. This fork will be specific to smokers.
 
 Turns a Raspberry Pi into an inexpensive, web-enabled smoker controller.
 
 ## Features
 
   * easy to create new kiln schedules and edit / modify existing schedules
-  * no limit to runtime - fire for days if you want
+  * no limit to runtime - smoke for days if you want
   * view status from multiple devices at once - computer, tablet etc
-  * firing cost estimate
   * NIST-linearized conversion for accurate K type thermocouple readings
-  * supports PID parameters you tune to your kiln
-  * monitors temperature in kiln after schedule has ended
+  * supports PID parameters you tune to your smoker
   * api for starting and stopping at any point in a schedule
   * supports MAX31856 and MAX31855 thermocouple boards
   * support for K, J, N, R, S, T, E, or B type thermocouples
-  * accurate simulation
-  * support for shifting schedule when kiln cannot heat quickly enough
-  * support for preventing initial integral wind-up
-
 
 **Run Kiln Schedule**
 
