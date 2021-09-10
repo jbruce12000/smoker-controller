@@ -8,32 +8,66 @@ import config
 
 log = logging.getLogger(__name__)
 
-
 class Output(object):
     def __init__(self):
         self.active = False
+        self.gpio_servo = config.gpio_servo
+        self.min_servo_angle = config.min_servo_angle
+        self.max_servo_angle = config.max_servo_angle
+        self.invert_servo = config.invert_servo
         self.load_libs()
+        self.servo = self.AngularServo(self.gpio_servo, \
+            min_angle = self.min_servo_angle, \
+            max_angle = self.max_servo_angle)
+        self.reset()
+
+    def reset(self):
+        '''sweep from closed to open and back again'''
+        if self.invert_servo:
+            self.servo.angle = self.min_servo_angle
+        else:
+            self.servo.angle = self.max_servo_angle
+        time.sleep(1)
+        if self.invert_servo:
+            self.servo.angle = self.max_servo_angle
+        else:
+            self.servo.angle = self.min_servo_angle
+        time.sleep(1)
 
     def load_libs(self):
+        '''load all the libs required by this class'''
         try:
-            import RPi.GPIO as GPIO
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setwarnings(False)
-            GPIO.setup(config.gpio_heat, GPIO.OUT)
+            import gpiozero
+            from gpiozero import AngularServo
+            self.AngularServo = AngularServo
+            from gpiozero.pins.pigpio import PiGPIOFactory
+            gpiozero.Device.pin_factory = PiGPIOFactory('127.0.0.1')
             self.active = True
-            self.GPIO = GPIO
         except:
             msg = "Could not initialize GPIOs, oven operation will only be simulated!"
             log.warning(msg)
             self.active = False
 
-    def heat(self,percent, tuning=False):
-        # some new code here
-        pass
+    def heat(self,heating_percent):
+        '''move servo to a specific angle based on heating percent
+           heating_percent is a float between 0 = no heat and 1 = 100% heating
+        '''
+        if self.invert_servo == True:
+            heating_percent = float(1 - heating_percent)
+
+        setpt_angle = self.min_servo_angle + \
+            ((self.max_servo_angle - self.min_servo_angle) * heating_percent)
+
+        log.info("servo_angle=%d" % (setpt_angle))
+        print("servo_angle=%d" % (setpt_angle))
+        self.servo.angle = setpt_angle
+
+        # amount of time between decisions
+        time.sleep(config.sensor_time_wait)
 
     def cool(self,sleepfor):
-        '''no active cooling, so sleep'''
-        time.sleep(sleepfor)
+        '''no active cooling, so pass'''
+        pass
 
 # FIX - Board class needs to be completely removed
 class Board(object):
@@ -376,17 +410,16 @@ class RealOven(Oven):
                                self.board.temp_sensor.temperature +
                                config.thermocouple_offset)
         heat_on = pid
-        heat_off = self.time_step
+        heat_off = 0
 
         # self.heat is for the front end to display if the heat is on
-        self.heat = 0.0
-        if heat_on > 0:
-            self.heat = 1.0
-
-        if heat_on:
+        self.heat = pid
+        
+        if self.heat > 1 or self.heat < 0:
+            self.output.heat(0)
+        else:
             self.output.heat(heat_on)
-        if heat_off:
-            self.output.cool(heat_off)
+
         time_left = self.totaltime - self.runtime
         log.info("temp=%.2f, target=%.2f, pid=%.3f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
             (self.board.temp_sensor.temperature + config.thermocouple_offset,
