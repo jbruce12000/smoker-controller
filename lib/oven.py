@@ -24,15 +24,13 @@ class Output(object):
     def reset(self):
         '''sweep from closed to open and back again'''
         if self.invert_servo:
-            self.servo.angle = self.min_servo_angle
+            self.move_slow(self.max_servo_angle)
         else:
-            self.servo.angle = self.max_servo_angle
-        time.sleep(1)
+            self.move_slow(self.min_servo_angle)
         if self.invert_servo:
-            self.servo.angle = self.max_servo_angle
+            self.move_slow(self.min_servo_angle)
         else:
-            self.servo.angle = self.min_servo_angle
-        time.sleep(1)
+            self.move_slow(self.max_servo_angle)
 
     def load_libs(self):
         '''load all the libs required by this class'''
@@ -48,6 +46,25 @@ class Output(object):
             log.warning(msg)
             self.active = False
 
+    def move_slow(self,end):
+        '''change the angle 2 degrees at a time with a 1/10s sleep in between
+        less noise, less stress on the servo, less current spikes'''
+        start = int(self.servo.angle)
+        end = int(end)
+        step = 2
+        slept = 0
+        if (start > end):
+            step = step * -1
+
+        log.info("servo changing angles from %d to %d" % (start, end))
+
+        for i in range(start,end,step):
+            self.servo.angle = i
+            slept = slept + .1
+            time.sleep(.1)
+
+        return slept
+
     def heat(self,heating_percent):
         '''move servo to a specific angle based on heating percent
            heating_percent is a float between 0 = no heat and 1 = 100% heating
@@ -58,12 +75,10 @@ class Output(object):
         setpt_angle = self.min_servo_angle + \
             ((self.max_servo_angle - self.min_servo_angle) * heating_percent)
 
-        log.info("servo_angle=%d" % (setpt_angle))
-        print("servo_angle=%d" % (setpt_angle))
-        self.servo.angle = setpt_angle
+        slept = self.move_slow(setpt_angle)
 
         # amount of time between decisions
-        time.sleep(config.sensor_time_wait)
+        time.sleep(config.sensor_time_wait - slept)
 
     def cool(self,sleepfor):
         '''no active cooling, so pass'''
