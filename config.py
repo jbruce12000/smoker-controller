@@ -30,7 +30,7 @@ currency_type   = "$"   # Currency Symbol to show when calculating cost to run j
 gpio_servo = 24  # gpio pin controlling servo
 min_servo_angle = -50
 max_servo_angle = 50
-invert_servo = False
+invert_servo = True
 
 ### Thermocouple interface selection:
 #   max31855 - bitbang SPI interface
@@ -53,7 +53,7 @@ gpio_sensor_di = 10 # only used with max31856
 # Every N seconds a decision is made about switching the relay[s] 
 # on & off and for how long. The thermocouple is read 
 # temperature_average_samples times during and the average value is used.
-sensor_time_wait = 1 
+sensor_time_wait = 10
 
 ########################################################################
 #
@@ -63,9 +63,13 @@ sensor_time_wait = 1
 # well with the simulated oven. You must tune them to work well with 
 # your specific kiln. Note that the integral pid_ki is
 # inverted so that a smaller number means more integral action.
-pid_kp = 25   # Proportional
-pid_ki = 200  # Integral
-pid_kd = 200  # Derivative
+pid_kp = 10   # Proportional 
+pid_ki = 100  # Integral  
+pid_kd = 50  # Derivative
+
+# 10-200-10 looked promising in my models
+# 25-200-200 wavered from 5 below to 3 above in a cycle
+# 10-100-100 stable
 
 
 ########################################################################
@@ -82,7 +86,7 @@ stop_integral_windup = True
 ########################################################################
 #
 #   Simulation parameters
-simulate = True
+simulate = False
 sim_t_env      = 60.0   # deg C
 sim_c_heat     = 100.0  # J/K  heat capacity of heat element
 sim_c_oven     = 5000.0 # J/K  heat capacity of oven
