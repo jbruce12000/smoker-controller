@@ -20,17 +20,13 @@ Fire Management is the most important part of any stick smoker. The operator con
   * api for starting and stopping
   * supports MAX31856 and MAX31855 thermocouple boards
   * support for K, J, N, R, S, T, E, or B type thermocouples
-  * automatically deals with changes to environment like wind or sudden temperature changes as a front comes through. Here is 30 minutes with a setpoint of 250F on a windy day...
+  * automatically deals with changes to environment like wind or sudden temperature changes as a front comes through. Here is 30 minutes updated every 10s with a setpoint of 250F on a windy day...
 
 ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/30-minutes.png)
 
 **Run Smoker Schedule**
 
 ![Image](https://github.com/jbruce12000/smoker-controller/blob/main/public/assets/images/kiln-running.png)
-
-**Edit Smoker Schedule**
-
-![Image](https://github.com/jbruce12000/smoker-controller/blob/main/public/assets/images/kiln-schedule.png)
 
 ## Hardware
 
