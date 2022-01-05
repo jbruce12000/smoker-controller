@@ -38,7 +38,7 @@ Fire Management is the most important part of any stick smoker. The operator con
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/max31855.png) | [MAX31855](https://www.adafruit.com/product/269) or [MAX31856](https://www.adafruit.com/product/3263) | Thermocouple breakout board |
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/k-type-thermocouple.png) | [K-Type Thermocouple](https://www.auberins.com/index.php?main_page=product_info&cPath=20_3&products_id=39) | Any $10 waterproof thermocouple will do just fine |
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/breadboard.png) | Breadboard | breadboard, ribbon cable, connector for pi's gpio pins & connecting wires |
-| ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/servo.png) | Servo | Powerful enough to move the flapper, same as those used in RC cars |
+| ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/servo.png) | Servo | Powerful enough to move the flapper, same as those used in RC cars. Waterproof. |
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/cap.png) | Exhaust Cap Flapper | Just like the ones you see on big-rigs and tractors. Mine is 6 inches in diameter because my exhaust was 5.5 inches. |
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/smoker.png) | Offset Smoker | Custom offset smoker with exhaust added to the fire box |
 
