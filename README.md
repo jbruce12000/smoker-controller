@@ -12,7 +12,6 @@ Fire Management is the most important part of any stick smoker. The operator con
 ## Features
 
   * handles temperature increases and decreases well - adding wood or opening doors to check meat
-  * automatically deals with changes to environment like wind or sudden temperature changes as a front comes through
   * can set a single temperature or a crazy complex temperature schedule
   * no limit to runtime - smoke for days if you want
   * use wifi to view status from multiple devices at once as a web page - computer, tablet etc
@@ -21,6 +20,9 @@ Fire Management is the most important part of any stick smoker. The operator con
   * api for starting and stopping
   * supports MAX31856 and MAX31855 thermocouple boards
   * support for K, J, N, R, S, T, E, or B type thermocouples
+  * automatically deals with changes to environment like wind or sudden temperature changes as a front comes through. Here is 30 minutes with a setpoint of 250F on a windy day...
+
+![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/30-minutes.png)
 
 **Run Smoker Schedule**
 
