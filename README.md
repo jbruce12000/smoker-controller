@@ -35,7 +35,7 @@ Fire Management is the most important part of any stick smoker. The operator con
 
 | Image | Hardware | Description |
 | ------| -------- | ----------- |
-| ![Image](https://github.com/jbruce12000/smoker-controller/blob/master/public/assets/images/rpi.png) | [Raspberry Pi](https://www.adafruit.com/category/105) | Virtually any Raspberry Pi will work since only a few GPIO pins are being used. |
+| ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/rpi.png) | [Raspberry Pi](https://www.adafruit.com/category/105) | Virtually any Raspberry Pi will work since only a few GPIO pins are being used. |
 | ![Image](https://github.com/jbruce12000/smoker-controller/blob/master/public/assets/images/max31855.png) | [MAX31855](https://www.adafruit.com/product/269) or [MAX31856](https://www.adafruit.com/product/3263) | Thermocouple breakout board |
 | ![Image](https://github.com/jbruce12000/smoker-controller/blob/master/public/assets/images/k-type-thermocouple.png) | [K-Type Thermocouple](https://www.auberins.com/index.php?main_page=product_info&cPath=20_3&products_id=39) | Invest in a heavy duty, ceramic, k-type thermocouple designed for kilns |
 | ![Image](https://github.com/jbruce12000/smoker-controller/blob/master/public/assets/images/breadboard.png) | Breadboard | breadboard, ribbon cable, connector for pi's gpio pins & connecting wires |
