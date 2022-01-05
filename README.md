@@ -44,7 +44,7 @@ Fire Management is the most important part of any stick smoker. The operator con
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/breadboard.png) | Breadboard | breadboard, ribbon cable, connector for pi's gpio pins & connecting wires |
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/servo.png) | Servo | Powerful enough to move the flapper, same as those used in RC cars |
 | ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/cap.png) | Exhaust Cap Flapper | Just like the ones you see on big-rigs and tractors. Mine is 6 inches in diameter because my exhaust was 5.5 inches. |
-| ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/cap.png) | Offset Smoker | Custom offset smoker with exhaust added to the fire box |
+| ![Image](https://raw.githubusercontent.com/jbruce12000/smoker-controller/main/public/assets/images/smoker.png) | Offset Smoker | Custom offset smoker with exhaust added to the fire box |
 
 ### Schematic
 
@@ -111,6 +111,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-## Support & Contact
+## Parting Thoughts 
 
-You shouldn't build this. It's a lot of work. Took me a few months to put everything together while I was waiting for my smoker to be delivered.
+You shouldn't build this. It's a lot of work. Took me a few months to put everything together while I was waiting for my smoker to be delivered. I had trouble with finding the right connectors for the servo and thermocouple. I had trouble with finding ways to NOT melt wires since they are close to the smoker. 
