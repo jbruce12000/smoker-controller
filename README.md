@@ -62,7 +62,6 @@ Download [Raspberry PI OS](https://www.raspberrypi.org/software/). Use Rasberry 
     $ virtualenv -p python3 venv
     $ source venv/bin/activate
     $ pip install --upgrade setuptools
-    $ pip install greenlet bottle gevent gevent-websocket
     $ pip install -r requirements.txt
 
 
