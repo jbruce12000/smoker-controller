@@ -113,8 +113,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## Support & Contact
 
-Please use the issue tracker for project related issues.
-If you're having trouble with hardware, I did too.  Here is a [troubleshooting guide](https://github.com/jbruce12000/smoker-controller/blob/main/docs/troubleshooting.md) I created for testing RPi gpio pins.
-
-## Origin
-This project was originally forked from https://github.com/apollo-ng/picoReflow but has diverged a large amount.
+You shouldn't build this. It's a lot of work. Took me a few months to put everything together while I was waiting for my smoker to be delivered.
