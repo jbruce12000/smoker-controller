@@ -3,7 +3,7 @@ Smoker Controller
 
 Turns a Raspberry Pi into a web-enabled smoker controller.
 
-This is a crazy stick burner smoker controller experiment. I had a smoker custom built by Lonnie Smith of [Bubba Grills](http://bubbagrills.net) and added a six inch servo controlled flapper to the top of a custom short exhaust over the center of the firebox. Controlling this flapper from completely closed to open gives me about 75F degrees of control. A thermocouple reads the temperature wherever it's placed in the smoker and this custom PID software controls the smoker to within a few degrees.
+This PID controller is a little different than others available. It does not use any fans. Instead it uses the natural draft of the smoker to control the temperature. I had a smoker custom built by Lonnie Smith of [Bubba Grills](http://bubbagrills.net) and added a six inch servo controlled flapper to the top of a custom short exhaust over the center of the firebox. Controlling this flapper from completely closed to open gives me about 75F degrees of control. A thermocouple reads the temperature wherever it's placed in the smoker and this custom PID software controls the smoker to within a few degrees.
 
 A Word about Fire Management
 
