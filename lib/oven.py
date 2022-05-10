@@ -245,12 +245,13 @@ class Oven(threading.Thread):
             log.info("Refusing to start profile - thermocouple unknown error")
             return
 
-        log.info("Running schedule %s" % profile.name)
+        self.startat = startat * 60
+        self.runtime = self.startat
+        self.start_time = datetime.datetime.now() - datetime.timedelta(seconds=self.startat)
+        log.info("Running schedule %s starting at %d minutes" % (profile.name,startat))
         self.profile = profile
         self.totaltime = profile.get_duration()
         self.state = "RUNNING"
-        self.start_time = datetime.datetime.now()
-        self.startat = startat * 60
         log.info("Starting")
 
     def abort_run(self):
@@ -261,10 +262,7 @@ class Oven(threading.Thread):
         if runtime_delta.total_seconds() < 0:
             runtime_delta = datetime.timedelta(0)
 
-        if self.startat > 0:
-            self.runtime = self.startat + runtime_delta.total_seconds()
-        else:
-            self.runtime = runtime_delta.total_seconds()
+        self.runtime = runtime_delta.total_seconds()
 
     def update_target_temp(self):
         self.target = self.profile.get_target_temperature(self.runtime)
@@ -504,12 +502,23 @@ class PID():
 
         error = float(setpoint - ispoint)
 
-        if self.ki > 0:
-            if config.stop_integral_windup == True:
-                if abs(self.kp * error) < window_size:
-                    self.iterm += (error * timeDelta * (1/self.ki))
-            else:
-                self.iterm += (error * timeDelta * (1/self.ki))
+        # this removes the need for config.stop_integral_windup
+        # it turns the controller into a binary on/off switch
+        # any time it's outside the window defined by
+        # config.pid_control_window
+        if error < (-1 * config.pid_control_window):
+            log.info("kiln outside pid control window, max cooling")
+            self.lastErr = error
+            self.lastNow = now
+            return 0
+        if error > (1 * config.pid_control_window):
+            log.info("kiln outside pid control window, max heating")
+            self.lastErr = error
+            self.lastNow = now
+            return 1
+
+        icomp = (error * timeDelta * (1/self.ki))
+        self.iterm += (error * timeDelta * (1/self.ki))
 
         dErr = (error - self.lastErr) / timeDelta
         output = self.kp * error + self.iterm + self.kd * dErr
@@ -524,14 +533,11 @@ class PID():
 
         output = float(output / window_size)
 
-        if out4logs > 0:
-#            log.info("pid percents pid=%0.2f p=%0.2f i=%0.2f d=%0.2f" % (out4logs,
-#                ((self.kp * error)/out4logs)*100,
-#                (self.iterm/out4logs)*100,
-#                ((self.kd * dErr)/out4logs)*100))
-            log.info("pid actuals pid=%0.2f p=%0.2f i=%0.2f d=%0.2f" % (out4logs,
-                self.kp * error,
-                self.iterm,
-                self.kd * dErr))
+        log.info("pid actuals pid=%0.2f p=%0.2f i=%0.2f d=%0.2f icomp=%0.2f error=%0.2f" % (out4logs,
+            self.kp * error,
+            self.iterm,
+            self.kd * dErr,
+            icomp,
+            error))
 
         return output
