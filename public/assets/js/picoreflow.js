@@ -559,11 +559,8 @@ $(document).ready(function()
                 }
 
                 $('#act_temp').html(parseInt(x.temperature));
+                $('#heat').html('<div class="bar" style="height:'+x.pidstats.out*70+'%;"></div>')
 
-		if (x.heat > 0.0) {
-	            setTimeout(function() { $('#heat').addClass("ds-led-heat-active") }, 0 )
-	            setTimeout(function() { $('#heat').removeClass("ds-led-heat-active") }, (x.heat*1000.0)-5)
-                    }
                 if (x.cool > 0.5) { $('#cool').addClass("ds-led-cool-active"); } else { $('#cool').removeClass("ds-led-cool-active"); }
                 if (x.air > 0.5) { $('#air').addClass("ds-led-air-active"); } else { $('#air').removeClass("ds-led-air-active"); }
                 if (x.temperature > hazardTemp()) { $('#hazard').addClass("ds-led-hazard-active"); } else { $('#hazard').removeClass("ds-led-hazard-active"); }

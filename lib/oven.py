@@ -206,8 +206,21 @@ class TempSensorReal(TempSensor):
                 self.bad_count += 1
 
             if len(temps):
-                self.temperature = sum(temps) / len(temps)
+                self.temperature = self.get_avg_temp(temps)
             time.sleep(self.sleeptime)
+
+    def get_avg_temp(self, temps, chop=25):
+        '''
+        strip off chop percent from the beginning and end of the sorted temps
+        then return the average of what is left
+        '''
+        chop = chop / 100
+        temps = sorted(temps)
+        total = len(temps)
+        items = int(total*chop)
+        temps = temps[items:total-items]
+        return sum(temps) / len(temps)
+
 
 class Oven(threading.Thread):
     '''parent oven class. this has all the common code
@@ -302,6 +315,7 @@ class Oven(threading.Thread):
             'kwh_rate': config.kwh_rate,
             'currency_type': config.currency_type,
             'profile': self.profile.name if self.profile else None,
+            'pidstats': self.pid.pidstats,
         }
         return state
 
@@ -386,15 +400,23 @@ class SimulatedOven(Oven):
             int(self.p_env)))
 
         time_left = self.totaltime - self.runtime
-        log.info("temp=%.2f, target=%.2f, pid=%.3f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
-            (self.board.temp_sensor.temperature + config.thermocouple_offset,
-             self.target,
-             pid,
-             heat_on,
-             heat_off,
-             self.runtime,
-             self.totaltime,
-             time_left))
+
+        try:
+            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
+                (self.pid.pidstats['ispoint'],
+                self.pid.pidstats['setpoint'],
+                self.pid.pidstats['err'],
+                self.pid.pidstats['pid'],
+                self.pid.pidstats['p'],
+                self.pid.pidstats['i'],
+                self.pid.pidstats['d'],
+                heat_on,
+                heat_off,
+                self.runtime,
+                self.totaltime,
+                time_left))
+        except KeyError:
+            pass
 
         # we don't actually spend time heating & cooling during
         # a simulation, so sleep.
@@ -434,15 +456,24 @@ class RealOven(Oven):
             self.output.heat(heat_on)
 
         time_left = self.totaltime - self.runtime
-        log.info("temp=%.2f, target=%.2f, pid=%.3f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
-            (self.board.temp_sensor.temperature + config.thermocouple_offset,
-             self.target,
-             pid,
-             heat_on,
-             heat_off,
-             self.runtime,
-             self.totaltime,
-             time_left))
+
+        try:
+            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
+                (self.pid.pidstats['ispoint'],
+                self.pid.pidstats['setpoint'],
+                self.pid.pidstats['err'],
+                self.pid.pidstats['pid'],
+                self.pid.pidstats['p'],
+                self.pid.pidstats['i'],
+                self.pid.pidstats['d'],
+                heat_on,
+                heat_off,
+                self.runtime,
+                self.totaltime,
+                time_left))
+        except KeyError:
+            pass
+
 
 class Profile():
     def __init__(self, json_data):
@@ -488,6 +519,7 @@ class PID():
         self.lastNow = datetime.datetime.now()
         self.iterm = 0
         self.lastErr = 0
+        self.pidstats = {}
 
     # FIX - this was using a really small window where the PID control
     # takes effect from -1 to 1. I changed this to various numbers and
@@ -501,29 +533,31 @@ class PID():
         window_size = 100
 
         error = float(setpoint - ispoint)
-
         # this removes the need for config.stop_integral_windup
         # it turns the controller into a binary on/off switch
         # any time it's outside the window defined by
         # config.pid_control_window
+        icomp = 0
+        output = 0
+        out4logs = 0
+        dErr = 0
         if error < (-1 * config.pid_control_window):
             log.info("kiln outside pid control window, max cooling")
-            self.lastErr = error
-            self.lastNow = now
-            return 0
-        if error > (1 * config.pid_control_window):
+            output = 0
+            # it is possible to set self.iterm=0 here and also below
+            # but I dont think its needed
+        elif error > (1 * config.pid_control_window):
             log.info("kiln outside pid control window, max heating")
-            self.lastErr = error
-            self.lastNow = now
-            return 1
+            output = 1
+        else:
+            icomp = (error * timeDelta * (1/self.ki))
+            self.iterm += (error * timeDelta * (1/self.ki))
+            dErr = (error - self.lastErr) / timeDelta
+            output = self.kp * error + self.iterm + self.kd * dErr
+            output = sorted([-1 * window_size, output, window_size])[1]
+            out4logs = output
+            output = float(output / window_size)
 
-        icomp = (error * timeDelta * (1/self.ki))
-        self.iterm += (error * timeDelta * (1/self.ki))
-
-        dErr = (error - self.lastErr) / timeDelta
-        output = self.kp * error + self.iterm + self.kd * dErr
-        out4logs = output
-        output = sorted([-1 * window_size, output, window_size])[1]
         self.lastErr = error
         self.lastNow = now
 
@@ -531,13 +565,21 @@ class PID():
         if output < 0:
             output = 0
 
-        output = float(output / window_size)
-
-        log.info("pid actuals pid=%0.2f p=%0.2f i=%0.2f d=%0.2f icomp=%0.2f error=%0.2f" % (out4logs,
-            self.kp * error,
-            self.iterm,
-            self.kd * dErr,
-            icomp,
-            error))
+        self.pidstats = {
+            'time': time.mktime(now.timetuple()),
+            'timeDelta': timeDelta,
+            'setpoint': setpoint,
+            'ispoint': ispoint,
+            'err': error,
+            'errDelta': dErr,
+            'p': self.kp * error,
+            'i': self.iterm,
+            'd': self.kd * dErr,
+            'kp': self.kp,
+            'ki': self.ki,
+            'kd': self.kd,
+            'pid': out4logs,
+            'out': output,
+        }
 
         return output
