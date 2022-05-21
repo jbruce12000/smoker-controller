@@ -1,4 +1,4 @@
 #!/bin/bash
-sudo cp /home/pi/kiln-controller/lib/init/kiln-controller.service /etc/systemd/system/
+sudo cp /home/pi/smoker-controller/lib/init/kiln-controller.service /etc/systemd/system/
 sudo systemctl enable kiln-controller
 sudo systemctl enable pigpiod

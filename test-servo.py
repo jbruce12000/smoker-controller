@@ -17,7 +17,7 @@ class Output(object):
         self.servo = self.AngularServo(self.gpio_servo, \
             min_angle = self.min_servo_angle, \
             max_angle = self.max_servo_angle)
-        self.reset()
+        #self.reset()
 
     def reset(self):
         '''sweep from closed to open and back again'''
@@ -61,7 +61,9 @@ class Output(object):
         self.servo.angle = setpt_angle
  
         # amount of time between decisions
-        time.sleep(config.sensor_time_wait)
+        #time.sleep(config.sensor_time_wait)
+        time.sleep(0.1)
+        #time.sleep(10)
 
     def cool(self,sleepfor):
         '''no active cooling, so pass'''
@@ -70,8 +72,15 @@ class Output(object):
 if __name__== "__main__":
 
   output = Output()
-  output.heat(.25)
-  output.heat(.5)
-  output.heat(.75)
-  output.heat(1)
   output.heat(0)
+  for i in range(100):
+      output.heat(i/100)
+  for i in range(100):
+      output.heat(1-(i/100))
+
+
+  #output.heat(.25)
+  #output.heat(.5)
+  #output.heat(.75)
+  #output.heat(1)
+  #output.heat(0)
