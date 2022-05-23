@@ -28,6 +28,12 @@ class Watcher(object):
         try:
             r = requests.get(self.kiln_url,timeout=1)
             return r.json()
+        except requests.exceptions.Timeout:
+            log.error("network timeout. check kiln_url and port.")
+            return {}
+        except requests.exceptions.ConnectionError:
+            log.error("network connection error. check kiln_url and port.")
+            return {}
         except:
             return {}
 
@@ -67,8 +73,8 @@ class Watcher(object):
 if __name__ == "__main__":
 
     watcher = Watcher(
-        kiln_url = "http://0.0.0.0:8082/api/stats",
-        slack_hook_url = "you must add this"
+        kiln_url = "http://192.168.1.84:8081/api/stats",
+        slack_hook_url = "you must add this",
         bad_check_limit = 6,
         temp_error_limit = 10,
         sleepfor = 10 )
