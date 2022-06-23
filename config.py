@@ -1,4 +1,5 @@
 import logging
+import os
 #from lib.max31856 import MAX31856
 
 ########################################################################
@@ -144,3 +145,17 @@ temperature_average_samples = 40
 
 # Thermocouple AC frequency filtering - set to True if in a 50Hz locale, else leave at False for 60Hz locale
 ac_freq_50hz = False
+
+########################################################################
+# automatic restarts - if you have a power brown-out and the raspberry pi
+# reboots, this restarts your kiln where it left off in the firing profile.
+# This only happens if power comes back before automatic_restart_window
+# is exceeded (in minutes). The kiln-controller.py process must start
+# automatically on boot-up for this to work.
+# DO NOT put automatic_restart_state_file anywhere in /tmp. It could be
+# cleaned up (deleted) by the OS on boot.
+# The state file is written to disk every sensor_time_wait seconds (2s by default)
+# and is written in the same directory as config.py.
+automatic_restarts = True
+automatic_restart_window = 30 # max minutes since power outage
+automatic_restart_state_file = os.path.abspath(os.path.join(os.path.dirname( __file__ ),'state.json'))

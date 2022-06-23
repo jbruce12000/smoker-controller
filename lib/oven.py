@@ -5,6 +5,7 @@ import datetime
 import logging
 import json
 import config
+import os
 
 log = logging.getLogger(__name__)
 
@@ -269,6 +270,7 @@ class Oven(threading.Thread):
 
     def abort_run(self):
         self.reset()
+        self.save_automatic_restart_state()
 
     def update_runtime(self):
         runtime_delta = datetime.datetime.now() - self.start_time
@@ -319,12 +321,75 @@ class Oven(threading.Thread):
         }
         return state
 
+    def save_state(self):
+        with open(config.automatic_restart_state_file, 'w', encoding='utf-8') as f:
+            json.dump(self.get_state(), f, ensure_ascii=False, indent=4)
+
+    def state_file_is_old(self):
+        '''returns True is state files is older than 15 mins default
+                   False if younger
+                   True if state file cannot be opened or does not exist
+        '''
+        if os.path.isfile(config.automatic_restart_state_file):
+            state_age = os.path.getmtime(config.automatic_restart_state_file)
+            now = time.time()
+            minutes = (now - state_age)/60
+            if(minutes <= config.automatic_restart_window):
+                return False
+        return True
+
+    def save_automatic_restart_state(self):
+        # only save state if the feature is enabled
+        if not config.automatic_restarts == True:
+            return False
+        self.save_state()
+
+    def should_i_automatic_restart(self):
+        # only automatic restart if the feature is enabled
+        if not config.automatic_restarts == True:
+            return False
+        if self.state_file_is_old():
+            # this log statement is too noisy.
+            #log.info("restart not possible. state file too old.")
+            return False
+        if os.path.isfile(config.automatic_restart_state_file):
+            with open(config.automatic_restart_state_file) as infile: d = json.load(infile)
+        else:
+            log.info("restart not possible. no state file found.")
+            return False
+        if d["state"] != "RUNNING":
+            # this log statement is too noisy.
+            #log.info("restart not possible. state = %s" % (d["state"]))
+            return False
+        return True
+
+    def automatic_restart(self):
+        with open(config.automatic_restart_state_file) as infile: d = json.load(infile)
+        startat = d["runtime"]/60
+        filename = "%s.json" % (d["profile"])
+        profile_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'storage','profiles',filename))
+
+        log.info("restarting profile = %s at minute = %d" % (profile_path,startat))
+        with open(profile_path) as infile:
+            profile_json = json.dumps(json.load(infile))
+        profile = Profile(profile_json)
+        self.run_profile(profile,startat=startat)
+        time.sleep(1)
+        self.ovenwatcher.record(profile)
+
+    def set_ovenwatcher(self,watcher):
+        log.info("ovenwatcher set in oven class")
+        self.ovenwatcher = watcher
+
     def run(self):
         while True:
             if self.state == "IDLE":
+                if self.should_i_automatic_restart() == True:
+                    self.automatic_restart()
                 time.sleep(1)
                 continue
             if self.state == "RUNNING":
+                self.save_automatic_restart_state()
                 self.update_runtime()
                 self.update_target_temp()
                 self.heat_then_cool()
