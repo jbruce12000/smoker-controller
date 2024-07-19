@@ -23,8 +23,8 @@ ws_status.onmessage = function(e) {
   drawall(all);
 
   console.log(average("err",1,all));
-  //console.log(average("err",5,all));
-  //console.log(average("err",15,all));
+  console.log(average("err",5,all));
+  console.log(average("err",15,all));
 
   };
 
@@ -42,13 +42,11 @@ create_table(all);
 //---------------------------------------------------------------------------
 function average(field,minutes,data) {
 if(data[0]!=null) {
-  var t = data[0].time;
+  var t = data[data.length - 1].time;
   var oldest = t-(60*minutes);
   var q = "SELECT AVG("+ field + ") from ? where time>=" + oldest.toString();
-  //console.log(q);
-  var avg = alasql(q,data);
-  console.log(avg)
-  return avg;
+  var avg = alasql(q,[data]);
+  return avg[0]["AVG(err)"];
   }
 return 0;
 }
