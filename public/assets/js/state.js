@@ -71,8 +71,10 @@ var trace = {
     x: unpack(rows, 'datetime'),
     y: unpack(rows, 'out'),
     name: 'heat',
-    mode: 'markers',
-    marker: { color: 'rgb(255,0,0)', size:2 }
+    mode: 'lines',
+    line: { color: 'rgb(255,0,0)', width:1 }
+    //mode: 'markers',
+    //marker: { color: 'rgb(255,0,0)', size:2 }
     };
 
 traces.push(trace);
@@ -95,8 +97,10 @@ var trace = {
     x: unpack(rows, 'datetime'),
     y: unpack(rows, 'p'),
     name: 'p',
-    mode: 'markers',
-    marker: { color: 'rgb(0,0,255)', size:2 }
+    mode: 'lines',
+    line: { color: 'rgb(0,0,255)', width:1 }
+    //mode: 'markers',
+    //marker: { color: 'rgb(0,0,255)', size:2 }
     };
 
 traces.push(trace);
@@ -119,8 +123,10 @@ var trace = {
     x: unpack(rows, 'datetime'),
     y: unpack(rows, 'i'),
     name: 'i',
-    mode: 'markers',
-    marker: { color: 'rgb(0,0,255)', size:2 }
+    mode: 'lines',
+    line: { color: 'rgb(0,0,255)', width:1 }
+    //mode: 'markers',
+    //marker: { color: 'rgb(0,0,255)', size:2 }
     };
 
 traces.push(trace);
@@ -143,8 +149,10 @@ var trace = {
     x: unpack(rows, 'datetime'),
     y: unpack(rows, 'd'),
     name: 'd',
-    mode: 'markers',
-    marker: { color: 'rgb(0,0,255)', size:2 }
+    mode: 'lines',
+    line: { color: 'rgb(0,0,255)', width:1 }
+    //mode: 'markers',
+    //marker: { color: 'rgb(0,0,255)', size:2 }
     };
 
 traces.push(trace);
@@ -168,8 +176,10 @@ var trace = {
     x: unpack(rows, 'datetime'),
     y: unpack(rows, 'err'),
     name: 'error',
-    mode: 'markers',
-    marker: { color: 'rgb(255,0,0)', size:2 }
+    mode: 'lines',
+    line: { color: 'rgb(255,0,0)', width:1 }
+    //mode: 'markers',
+    //marker: { color: 'rgb(255,0,0)', size:2 }
     };
 
 traces.push(trace);
@@ -193,8 +203,10 @@ var trace = {
     x: unpack(rows, 'datetime'),
     y: unpack(rows, 'ispoint'),
     name: 'temp',
-    mode: 'markers',
-    marker: { color: 'rgb(255,0,0)', size:2 }
+    mode: 'lines',
+    line: { color: 'rgb(255,0,0)', width:1 }
+    //mode: 'markers',
+    //marker: { color: 'rgb(255,0,0)', size:2 }
     };
 
 traces.push(trace);
@@ -203,8 +215,10 @@ trace = {
     x: unpack(rows, 'datetime'),
     y: unpack(rows, 'setpoint'),
     name: 'target',
-    mode: 'markers',
-    marker: { color: 'rgb(0,255,0)', size:2 }
+    mode: 'lines',
+    line: { color: 'rgb(0,255,0)', width:1 }
+    //mode: 'markers',
+    //marker: { color: 'rgb(0,255,0)', size:2 }
     };
 
 traces.push(trace);
