@@ -1,5 +1,6 @@
 config = "";
 all = [];
+var table = "";
 
 var protocol = 'ws:';
 if (window.location.protocol == 'https:') {
@@ -22,10 +23,10 @@ ws_status.onmessage = function(e) {
   table.replaceData(latest(20));
   drawall(all);
 
-  console.log(average("err",1,all));
-  console.log(average("err",5,all));
-  console.log(average("err",15,all));
-
+  document.getElementById("error-current").innerHTML = rnd(x.pidstats.err);
+  document.getElementById("error-1min").innerHTML = rnd(average("err",1,all));
+  document.getElementById("error-5min").innerHTML = rnd(average("err",5,all));
+  document.getElementById("error-15min").innerHTML = rnd(average("err",15,all));
   };
 
 ws_config.onopen = function() {
@@ -39,6 +40,10 @@ ws_config.onmessage = function(e) {
 
 create_table(all);
 
+//---------------------------------------------------------------------------
+function rnd(number) {
+return Number(number).toFixed(2);
+}
 //---------------------------------------------------------------------------
 function average(field,minutes,data) {
 if(data[0]!=null) {
@@ -72,7 +77,7 @@ var trace = {
     y: unpack(rows, 'out'),
     name: 'heat',
     mode: 'lines',
-    line: { color: 'rgb(255,0,0)', width:1 }
+    line: { color: 'rgb(255,0,0)', width:2 }
     //mode: 'markers',
     //marker: { color: 'rgb(255,0,0)', size:2 }
     };
@@ -98,7 +103,7 @@ var trace = {
     y: unpack(rows, 'p'),
     name: 'p',
     mode: 'lines',
-    line: { color: 'rgb(0,0,255)', width:1 }
+    line: { color: 'rgb(0,0,255)', width:2 }
     //mode: 'markers',
     //marker: { color: 'rgb(0,0,255)', size:2 }
     };
@@ -124,7 +129,7 @@ var trace = {
     y: unpack(rows, 'i'),
     name: 'i',
     mode: 'lines',
-    line: { color: 'rgb(0,0,255)', width:1 }
+    line: { color: 'rgb(0,0,255)', width:2 }
     //mode: 'markers',
     //marker: { color: 'rgb(0,0,255)', size:2 }
     };
@@ -150,7 +155,7 @@ var trace = {
     y: unpack(rows, 'd'),
     name: 'd',
     mode: 'lines',
-    line: { color: 'rgb(0,0,255)', width:1 }
+    line: { color: 'rgb(0,0,255)', width:2 }
     //mode: 'markers',
     //marker: { color: 'rgb(0,0,255)', size:2 }
     };
@@ -177,7 +182,7 @@ var trace = {
     y: unpack(rows, 'err'),
     name: 'error',
     mode: 'lines',
-    line: { color: 'rgb(255,0,0)', width:1 }
+    line: { color: 'rgb(255,0,0)', width:2 }
     //mode: 'markers',
     //marker: { color: 'rgb(255,0,0)', size:2 }
     };
@@ -201,25 +206,27 @@ var title = 'Temperature and Target';
 
 var trace = {
     x: unpack(rows, 'datetime'),
-    y: unpack(rows, 'ispoint'),
-    name: 'temp',
+    y: unpack(rows, 'setpoint'),
+    name: 'target',
     mode: 'lines',
-    line: { color: 'rgb(255,0,0)', width:1 }
+    line: { color: 'rgb(0,0,255)', width:2 }
     //mode: 'markers',
-    //marker: { color: 'rgb(255,0,0)', size:2 }
+    //marker: { color: 'rgb(0,255,0)', size:2 }
     };
 
 traces.push(trace);
 
 trace = {
     x: unpack(rows, 'datetime'),
-    y: unpack(rows, 'setpoint'),
-    name: 'target',
+    y: unpack(rows, 'ispoint'),
+    name: 'temp',
     mode: 'lines',
-    line: { color: 'rgb(0,255,0)', width:1 }
+    line: { color: 'rgb(255,0,0)', width:2 }
     //mode: 'markers',
-    //marker: { color: 'rgb(0,255,0)', size:2 }
+    //marker: { color: 'rgb(255,0,0)', size:2 }
     };
+
+
 
 traces.push(trace);
 
@@ -270,5 +277,10 @@ table = new Tabulator("#state-table", {
     {title:"D", field:"d"},
     {title:"Heat", field:"out"}
     ]});
+}
+
+//---------------------------------------------------------------------------
+function csv_string() {
+table.download("csv", "ith-actions-stats.csv");
 }
 

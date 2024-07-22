@@ -3,15 +3,36 @@
 <head>
  <title>Kiln Controller</title>
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <link rel="stylesheet" href="assets/css/state.css"/>
 </head>
 <body>
-<div id="state-table"></div>
+<div class="container" id="error-stats">
+  <div class="stat">
+    <div class="top">now</div>
+    <div class="bottom" id="error-current"></div>
+  </div>
+    <div class="stat">
+    <div class="top">1 min</div>
+  <div class="bottom" id="error-1min"></div>
+  </div>
+    <div class="stat">
+    <div class="top">5 min</div>
+  <div class="bottom" id="error-5min"></div>
+  </div>
+    <div class="stat">
+    <div class="top">15 min</div>
+  <div class="bottom" id="error-15min"></div>
+  </div>
+</div>
+
 <div id="temps"></div>
 <div id="error"></div>
 <div id="heat"></div>
 <div id="p"></div>
 <div id="i"></div>
 <div id="d"></div>
+<div id="state-table"></div>
+<div id="state-table-controls"><a href="javascript: void(0)" onclick="csv_string();" >csv</a></div>
 <div id="state"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/alasql/4.3.2/alasql.min.js"></script>
