@@ -27,6 +27,11 @@ ws_status.onmessage = function(e) {
   document.getElementById("error-1min").innerHTML = rnd(average("err",1,all));
   document.getElementById("error-5min").innerHTML = rnd(average("err",5,all));
   document.getElementById("error-15min").innerHTML = rnd(average("err",15,all));
+  
+  document.getElementById("temp").innerHTML = rnd(x.pidstats.ispoint);
+  document.getElementById("target").innerHTML = rnd(x.pidstats.setpoint);
+
+  document.getElementById("heat-pct").innerHTML = rnd(x.pidstats.out);
   };
 
 ws_config.onopen = function() {
@@ -78,8 +83,6 @@ var trace = {
     name: 'heat',
     mode: 'lines',
     line: { color: 'rgb(255,0,0)', width:2 }
-    //mode: 'markers',
-    //marker: { color: 'rgb(255,0,0)', size:2 }
     };
 
 traces.push(trace);
@@ -89,7 +92,7 @@ var layout = {
   title: title,
   showlegend: true,
   };
-Plotly.newPlot(spot, traces, layout);
+Plotly.newPlot(spot, traces, layout, {displayModeBar: false});
 }
 
 //---------------------------------------------------------------------------
@@ -104,8 +107,6 @@ var trace = {
     name: 'p',
     mode: 'lines',
     line: { color: 'rgb(0,0,255)', width:2 }
-    //mode: 'markers',
-    //marker: { color: 'rgb(0,0,255)', size:2 }
     };
 
 traces.push(trace);
@@ -115,7 +116,7 @@ var layout = {
   title: title,
   showlegend: true,
   };
-Plotly.newPlot(spot, traces, layout);
+Plotly.newPlot(spot, traces, layout, {displayModeBar: false});
 }
 
 //---------------------------------------------------------------------------
@@ -130,8 +131,6 @@ var trace = {
     name: 'i',
     mode: 'lines',
     line: { color: 'rgb(0,0,255)', width:2 }
-    //mode: 'markers',
-    //marker: { color: 'rgb(0,0,255)', size:2 }
     };
 
 traces.push(trace);
@@ -141,7 +140,7 @@ var layout = {
   title: title,
   showlegend: true,
   };
-Plotly.newPlot(spot, traces, layout);
+Plotly.newPlot(spot, traces, layout, {displayModeBar: false});
 }
 
 //---------------------------------------------------------------------------
@@ -156,8 +155,6 @@ var trace = {
     name: 'd',
     mode: 'lines',
     line: { color: 'rgb(0,0,255)', width:2 }
-    //mode: 'markers',
-    //marker: { color: 'rgb(0,0,255)', size:2 }
     };
 
 traces.push(trace);
@@ -167,7 +164,7 @@ var layout = {
   title: title,
   showlegend: true,
   };
-Plotly.newPlot(spot, traces, layout);
+Plotly.newPlot(spot, traces, layout, {displayModeBar: false});
 }
 
 
@@ -183,8 +180,6 @@ var trace = {
     name: 'error',
     mode: 'lines',
     line: { color: 'rgb(255,0,0)', width:2 }
-    //mode: 'markers',
-    //marker: { color: 'rgb(255,0,0)', size:2 }
     };
 
 traces.push(trace);
@@ -195,7 +190,7 @@ var layout = {
   showlegend: true,
   //xaxis : { tickformat:'%b' },
   };
-Plotly.newPlot(spot, traces, layout);
+Plotly.newPlot(spot, traces, layout, {displayModeBar: false});
 }
 
 //---------------------------------------------------------------------------
@@ -210,8 +205,6 @@ var trace = {
     name: 'target',
     mode: 'lines',
     line: { color: 'rgb(0,0,255)', width:2 }
-    //mode: 'markers',
-    //marker: { color: 'rgb(0,255,0)', size:2 }
     };
 
 traces.push(trace);
@@ -222,8 +215,6 @@ trace = {
     name: 'temp',
     mode: 'lines',
     line: { color: 'rgb(255,0,0)', width:2 }
-    //mode: 'markers',
-    //marker: { color: 'rgb(255,0,0)', size:2 }
     };
 
 
@@ -236,7 +227,7 @@ var layout = {
   showlegend: true,
   //xaxis : { tickformat:'%b' },
   };
-Plotly.newPlot(spot, traces, layout);
+Plotly.newPlot(spot, traces, layout, {displayModeBar: false});
 }
 
 //---------------------------------------------------------------------------
@@ -281,6 +272,6 @@ table = new Tabulator("#state-table", {
 
 //---------------------------------------------------------------------------
 function csv_string() {
-table.download("csv", "ith-actions-stats.csv");
+table.download("csv", "kiln-state.csv");
 }
 

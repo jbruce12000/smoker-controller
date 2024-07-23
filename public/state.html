@@ -6,22 +6,44 @@
  <link rel="stylesheet" href="assets/css/state.css"/>
 </head>
 <body>
+
+<div class="container" id="temp-stats">
+  <div class="stattxt">TEMP</div>
+  <div class="stat">
+    <div class="top">temp</div>
+    <div class="bottom" id="temp"></div>
+  </div>
+  <div class="stat">
+    <div class="top">target</div>
+    <div class="bottom" id="target"></div>
+  </div>
+</div>
+
 <div class="container" id="error-stats">
+  <div class="stattxt">ERROR</div>
   <div class="stat">
     <div class="top">now</div>
     <div class="bottom" id="error-current"></div>
   </div>
-    <div class="stat">
+  <div class="stat">
     <div class="top">1 min</div>
-  <div class="bottom" id="error-1min"></div>
+    <div class="bottom" id="error-1min"></div>
   </div>
-    <div class="stat">
+  <div class="stat">
     <div class="top">5 min</div>
-  <div class="bottom" id="error-5min"></div>
+    <div class="bottom" id="error-5min"></div>
   </div>
-    <div class="stat">
+  <div class="stat">
     <div class="top">15 min</div>
-  <div class="bottom" id="error-15min"></div>
+    <div class="bottom" id="error-15min"></div>
+  </div>
+</div>
+
+<div class="container" id="heat-stats">
+  <div class="stattxt">HEAT</div>
+  <div class="stat">
+    <div class="top">heat %</div>
+    <div class="bottom" id="heat-pct"></div>
   </div>
 </div>
 
