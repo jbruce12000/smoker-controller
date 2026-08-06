@@ -6,3 +6,4 @@ pigpio
 RPi.GPIO
 
 pytest
+webtest

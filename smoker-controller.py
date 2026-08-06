@@ -31,13 +31,44 @@ from ovenWatcher import OvenWatcher
 
 app = bottle.Bottle()
 
-if config.simulate:
-    log.info("running in simulation mode")
-    smoker = SimulatedSmoker()
-else:
-    log.info("running with real hardware")
-    smoker = Smoker()
-smokerWatcher = OvenWatcher(smoker)
+smoker = None
+smokerWatcher = None
+
+
+def build_controller():
+    '''construct the smoker and its watcher. deferred so importing this
+    module (e.g. in tests) does not start any threads.'''
+    global smoker, smokerWatcher
+    if config.simulate:
+        log.info("running in simulation mode")
+        smoker = SimulatedSmoker()
+    else:
+        log.info("running with real hardware")
+        smoker = Smoker()
+    smokerWatcher = OvenWatcher(smoker)
+
+
+def handle_control_message(msgdict):
+    '''dispatch a control websocket message. extracted from the ws loop so
+    it can be tested directly.'''
+    cmd = msgdict.get('cmd')
+    if cmd == "RUN":
+        setpoint = msgdict.get('setpoint', config.default_setpoint)
+        log.info("RUN command received, setpoint = %s" % setpoint)
+        if smoker.start_smoke(setpoint):
+            smokerWatcher.record()
+    elif cmd == "SET_TEMP":
+        setpoint = msgdict.get('setpoint')
+        if setpoint is not None:
+            smoker.set_setpoint(setpoint)
+    elif cmd == "SIM_SPEED":
+        if config.simulate:
+            speed = max(1, int(msgdict.get('speed', 1)))
+            smoker.speed = speed
+            log.info("simulation speed set to %dx" % speed)
+    elif cmd == "STOP":
+        log.info("STOP command received")
+        smoker.abort_run()
 
 
 @app.get('/')
@@ -91,25 +122,7 @@ def handle_control():
             if not message:
                 break
             log.info("Received (control): %s" % message)
-            msgdict = json.loads(message)
-            cmd = msgdict.get('cmd')
-            if cmd == "RUN":
-                setpoint = msgdict.get('setpoint', config.default_setpoint)
-                log.info("RUN command received, setpoint = %s" % setpoint)
-                if smoker.start_smoke(setpoint):
-                    smokerWatcher.record()
-            elif cmd == "SET_TEMP":
-                setpoint = msgdict.get('setpoint')
-                if setpoint is not None:
-                    smoker.set_setpoint(setpoint)
-            elif cmd == "SIM_SPEED":
-                if config.simulate:
-                    speed = max(1, int(msgdict.get('speed', 1)))
-                    smoker.speed = speed
-                    log.info("simulation speed set to %dx" % speed)
-            elif cmd == "STOP":
-                log.info("STOP command received")
-                smoker.abort_run()
+            handle_control_message(json.loads(message))
         except WebSocketError as e:
             log.error(e)
             break
@@ -131,6 +144,7 @@ def handle_status():
 
 
 def main():
+    build_controller()
     ip = config.listening_ip
     port = config.listening_port
     log.info("listening on %s:%d" % (ip, port))

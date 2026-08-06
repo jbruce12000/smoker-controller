@@ -102,6 +102,16 @@ The web interface shows the live temperature, target, and error readouts, plus c
   * `POST /api` with `{"cmd": "run", "setpoint": 250}` - start a smoke
   * `POST /api` with `{"cmd": "stop"}` - stop
 
+### Running the tests
+
+The controller logic (PID, simulation model, watcher) and the web routes are covered by pytest:
+
+    $ source venv/bin/activate
+    $ pip install -r requirements.txt
+    $ pytest
+
+The tests run in simulation mode against fakes, so no smoker or Raspberry Pi is needed.
+
 ## License
 
 This program is free software: you can redistribute it and/or modify
