@@ -5,5 +5,4 @@ gpiozero
 pigpio
 RPi.GPIO
 
-# for the optional watcher.py slack alert script
-requests
+pytest
