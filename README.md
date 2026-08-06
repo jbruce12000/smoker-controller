@@ -92,6 +92,10 @@ If you want the server to autostart on boot:
 
 Click http://127.0.0.1:8081 for local development or use the IP of your Pi and the port defined in config.py (default 8081). Set a target temperature, press Start, and adjust the target any time during the smoke.
 
+![Web interface](docs/interface.png)
+
+The web interface shows the live temperature, target, and error readouts, plus charts of the temperature, flapper position, and PID terms over a selectable time span (2 minutes to the entire session). The flapper readout turns red as an "add wood" reminder when it stays wide open during steady state.
+
 ### API
 
   * `GET /api/stats` - current controller state as JSON
