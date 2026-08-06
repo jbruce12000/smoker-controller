@@ -244,9 +244,6 @@ class Smoker(threading.Thread):
         if hasattr(self, 'output'):
             self.output.cool(0)
 
-    def set_ovenwatcher(self, watcher):
-        self.ovenwatcher = watcher
-
     def current_temp(self):
         return self.board.temp_sensor.temperature + config.thermocouple_offset
 

@@ -38,7 +38,6 @@ else:
     log.info("running with real hardware")
     smoker = Smoker()
 smokerWatcher = OvenWatcher(smoker)
-smoker.set_ovenwatcher(smokerWatcher)
 
 
 @app.get('/')
