@@ -1,0 +1,10 @@
+[Unit]
+Description=smoker-controller
+
+[Service]
+ExecStart=/home/pi/smoker-controller/venv/bin/python /home/pi/smoker-controller/smoker-controller.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

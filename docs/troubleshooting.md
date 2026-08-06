@@ -10,7 +10,7 @@ you to verify everything works as expected.
 
 ## Breadboard Orientation
 
-![Image](https://github.com/jbruce12000/kiln-controller/blob/master/public/assets/images/breadboard.png)
+![Image](https://github.com/jbruce12000/smoker-controller/blob/main/public/assets/images/breadboard.png)
 
 If you're using a breadboard with a labeled break-out board, verify:
 

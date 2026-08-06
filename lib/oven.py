@@ -1,15 +1,17 @@
 import threading
 import time
-import random
 import datetime
 import logging
 import json
-import config
 import os
+import config
 
 log = logging.getLogger(__name__)
 
+
 class Output(object):
+    '''controls the servo that opens and closes the smoker flapper'''
+
     def __init__(self):
         self.active = False
         self.gpio_servo = config.gpio_servo
@@ -17,21 +19,22 @@ class Output(object):
         self.max_servo_angle = config.max_servo_angle
         self.invert_servo = config.invert_servo
         self.load_libs()
-        self.servo = self.AngularServo(self.gpio_servo, \
-            min_angle = self.min_servo_angle, \
-            max_angle = self.max_servo_angle)
-        self.reset()
+        if self.active:
+            self.servo = self.AngularServo(self.gpio_servo,
+                                           min_angle=self.min_servo_angle,
+                                           max_angle=self.max_servo_angle)
+            self.reset()
+        else:
+            self.servo = None
 
     def reset(self):
-        '''sweep from closed to open and back again'''
+        '''close the flapper'''
+        if self.servo is None:
+            return
         if self.invert_servo:
             self.move_slow(self.max_servo_angle)
         else:
             self.move_slow(self.min_servo_angle)
-        if self.invert_servo:
-            self.move_slow(self.min_servo_angle)
-        else:
-            self.move_slow(self.max_servo_angle)
 
     def load_libs(self):
         '''load all the libs required by this class'''
@@ -42,90 +45,49 @@ class Output(object):
             from gpiozero.pins.pigpio import PiGPIOFactory
             gpiozero.Device.pin_factory = PiGPIOFactory('127.0.0.1')
             self.active = True
-        except:
-            msg = "Could not initialize GPIOs, oven operation will only be simulated!"
-            log.warning(msg)
+        except Exception:
+            log.warning("Could not initialize GPIOs, smoker operation will only be simulated!")
             self.active = False
 
-    def move_slow(self,end):
-        '''change the angle 2 degrees at a time with a 1/10s sleep in between
-        less noise, less stress on the servo, less current spikes'''
+    def move_slow(self, end):
+        '''move the servo 2 degrees at a time with a 1/10s sleep in between.
+        less noise, less stress on the servo, less current spikes.
+        returns the time spent moving.'''
+        if self.servo is None:
+            return 0
         start = int(self.servo.angle)
         end = int(end)
         step = 2
         slept = 0
-        if (start > end):
+        if start > end:
             step = step * -1
 
         log.info("servo changing angles from %d to %d" % (start, end))
 
-        for i in range(start,end,step):
+        for i in range(start, end, step):
             self.servo.angle = i
             slept = slept + .1
             time.sleep(.1)
 
         return slept
 
-    def heat(self,heating_percent):
-        '''move servo to a specific angle based on heating percent
-           heating_percent is a float between 0 = no heat and 1 = 100% heating
-        '''
+    def heat(self, heating_percent):
+        '''move the servo based on the heating_percent
+           heating_percent is a float between 0 = closed and 1 = fully open'''
+        if self.servo is None:
+            return
         if self.invert_servo == True:
             heating_percent = float(1 - heating_percent)
 
         setpt_angle = self.min_servo_angle + \
             ((self.max_servo_angle - self.min_servo_angle) * heating_percent)
 
-        slept = self.move_slow(setpt_angle)
+        self.move_slow(setpt_angle)
 
-        # amount of time between decisions
-        time.sleep(config.sensor_time_wait - slept)
-
-    def cool(self,sleepfor):
+    def cool(self, sleepfor):
         '''no active cooling, so pass'''
         pass
 
-# FIX - Board class needs to be completely removed
-class Board(object):
-    def __init__(self):
-        self.name = None
-        self.active = False
-        self.temp_sensor = None
-        self.gpio_active = False
-        self.load_libs()
-        self.create_temp_sensor()
-        self.temp_sensor.start()
-
-    def load_libs(self):
-        if config.max31855:
-            try:
-                #from max31855 import MAX31855, MAX31855Error
-                self.name='MAX31855'
-                self.active = True
-                log.info("import %s " % (self.name))
-            except ImportError:
-                msg = "max31855 config set, but import failed"
-                log.warning(msg)
-
-        if config.max31856:
-            try:
-                #from max31856 import MAX31856, MAX31856Error
-                self.name='MAX31856'
-                self.active = True
-                log.info("import %s " % (self.name))
-            except ImportError:
-                msg = "max31856 config set, but import failed"
-                log.warning(msg)
-
-    def create_temp_sensor(self):
-        if config.simulate == True:
-            self.temp_sensor = TempSensorSimulate()
-        else:
-            self.temp_sensor = TempSensorReal()
-
-class BoardSimulated(object):
-    def __init__(self):
-        self.temp_sensor = TempSensorSimulated()
 
 class TempSensor(threading.Thread):
     def __init__(self):
@@ -136,10 +98,12 @@ class TempSensor(threading.Thread):
         self.time_step = config.sensor_time_wait
         self.noConnection = self.shortToGround = self.shortToVCC = self.unknownError = False
 
+
 class TempSensorSimulated(TempSensor):
-    '''not much here, just need to be able to set the temperature'''
+    '''temperature is set by the simulation model'''
     def __init__(self):
         TempSensor.__init__(self)
+
 
 class TempSensorReal(TempSensor):
     '''real temperature sensor thread that takes N measurements
@@ -153,24 +117,23 @@ class TempSensorReal(TempSensor):
 
         if config.max31855:
             log.info("init MAX31855")
-            from max31855 import MAX31855, MAX31855Error
+            from max31855 import MAX31855
             self.thermocouple = MAX31855(config.gpio_sensor_cs,
-                                     config.gpio_sensor_clock,
-                                     config.gpio_sensor_data,
-                                     config.temp_scale)
+                                         config.gpio_sensor_clock,
+                                         config.gpio_sensor_data,
+                                         config.temp_scale)
 
         if config.max31856:
             log.info("init MAX31856")
             from max31856 import MAX31856
-            software_spi = { 'cs': config.gpio_sensor_cs,
-                             'clk': config.gpio_sensor_clock,
-                             'do': config.gpio_sensor_data,
-                             'di': config.gpio_sensor_di }
+            software_spi = {'cs': config.gpio_sensor_cs,
+                            'clk': config.gpio_sensor_clock,
+                            'do': config.gpio_sensor_data,
+                            'di': config.gpio_sensor_di}
             self.thermocouple = MAX31856(tc_type=config.thermocouple_type,
-                                         software_spi = software_spi,
-                                         units = config.temp_scale,
-                                         ac_freq_50hz = config.ac_freq_50hz,
-                                         )
+                                         software_spi=software_spi,
+                                         units=config.temp_scale,
+                                         ac_freq_50hz=config.ac_freq_50hz)
 
     def run(self):
         '''use a moving average of config.temperature_average_samples across the time_step'''
@@ -201,9 +164,10 @@ class TempSensorReal(TempSensor):
                 if len(temps) > config.temperature_average_samples:
                     del temps[0]
                 self.ok_count += 1
-
             else:
-                log.error("Problem reading temp N/C:%s GND:%s VCC:%s ???:%s" % (self.noConnection,self.shortToGround,self.shortToVCC,self.unknownError))
+                log.error("Problem reading temp N/C:%s GND:%s VCC:%s ???:%s" %
+                          (self.noConnection, self.shortToGround,
+                           self.shortToVCC, self.unknownError))
                 self.bad_count += 1
 
             if len(temps):
@@ -218,405 +182,248 @@ class TempSensorReal(TempSensor):
         chop = chop / 100
         temps = sorted(temps)
         total = len(temps)
-        items = int(total*chop)
-        temps = temps[items:total-items]
+        items = int(total * chop)
+        temps = temps[items:total - items]
         return sum(temps) / len(temps)
 
 
-class Oven(threading.Thread):
-    '''parent oven class. this has all the common code
-       for either a real or simulated oven'''
+class Board(object):
+    '''real smoker board - thermocouple + servo'''
+    def __init__(self):
+        self.temp_sensor = TempSensorReal()
+        self.temp_sensor.start()
+
+
+class BoardSimulated(object):
+    '''simulated board. the simulation model owns the temperature'''
+    def __init__(self):
+        self.temp_sensor = TempSensorSimulated()
+        self.t_env = config.sim_t_env
+        self.p_heat = config.sim_p_heat
+        self.r_oven = config.sim_r_oven
+        self.c_oven = config.sim_c_oven
+        self.temp_c = self.t_env
+        self.temp_sensor.temperature = self._to_scale(self.temp_c)
+
+    def step(self, openness, dt):
+        '''advance the model by dt seconds.
+           openness is 0 (flapper closed) to 1 (flapper fully open).'''
+        # heat from the fire reaching the chamber
+        q_in = self.p_heat * openness
+        # heat lost to the ambient environment
+        q_out = (self.temp_c - self.t_env) / self.r_oven
+        self.temp_c += (q_in - q_out) * dt / self.c_oven
+        self.temp_sensor.temperature = self._to_scale(self.temp_c)
+
+    def _to_scale(self, temp_c):
+        if config.temp_scale == "f":
+            return temp_c * 9.0 / 5.0 + 32
+        return temp_c
+
+
+class Smoker(threading.Thread):
+    '''controls a smoker by reading a thermocouple and driving a servo
+       flapper to hold a target temperature.'''
     def __init__(self):
         threading.Thread.__init__(self)
         self.daemon = True
-        self.temperature = 0
         self.time_step = config.sensor_time_wait
+        self.board = Board()
+        self.output = Output()
+        self.speed = config.sim_speed
         self.reset()
+        self.start()
 
     def reset(self):
         self.state = "IDLE"
-        self.profile = None
+        self.setpoint = 0
+        self.heat = 0
         self.start_time = 0
         self.runtime = 0
-        self.totaltime = 0
-        self.target = 0
-        self.heat = 0
         self.pid = PID(ki=config.pid_ki, kd=config.pid_kd, kp=config.pid_kp)
+        if hasattr(self, 'output'):
+            self.output.cool(0)
 
-    def run_profile(self, profile, startat=0):
-        self.reset()
+    def set_ovenwatcher(self, watcher):
+        self.ovenwatcher = watcher
 
+    def current_temp(self):
+        return self.board.temp_sensor.temperature + config.thermocouple_offset
+
+    def start_smoke(self, setpoint=None):
         if self.board.temp_sensor.noConnection:
-            log.info("Refusing to start profile - thermocouple not connected")
-            return
+            log.info("Refusing to start - thermocouple not connected")
+            return False
         if self.board.temp_sensor.shortToGround:
-            log.info("Refusing to start profile - thermocouple short to ground")
-            return
+            log.info("Refusing to start - thermocouple short to ground")
+            return False
         if self.board.temp_sensor.shortToVCC:
-            log.info("Refusing to start profile - thermocouple short to VCC")
-            return
+            log.info("Refusing to start - thermocouple short to VCC")
+            return False
         if self.board.temp_sensor.unknownError:
-            log.info("Refusing to start profile - thermocouple unknown error")
-            return
+            log.info("Refusing to start - thermocouple unknown error")
+            return False
 
-        self.startat = startat * 60
-        self.runtime = self.startat
-        self.start_time = datetime.datetime.now() - datetime.timedelta(seconds=self.startat)
-        log.info("Running schedule %s starting at %d minutes" % (profile.name,startat))
-        self.profile = profile
-        self.totaltime = profile.get_duration()
+        if setpoint is None:
+            setpoint = config.default_setpoint
+        setpoint = float(setpoint)
+        setpoint = sorted([config.min_setpoint, setpoint, config.max_setpoint])[1]
+
+        self.reset()
+        self.setpoint = setpoint
+        self.start_time = datetime.datetime.now()
+        self.runtime = 0
         self.state = "RUNNING"
-        log.info("Starting")
+        log.info("Starting smoke at %s degrees" % setpoint)
+        return True
+
+    def set_setpoint(self, setpoint):
+        setpoint = float(setpoint)
+        setpoint = sorted([config.min_setpoint, setpoint, config.max_setpoint])[1]
+        self.setpoint = setpoint
+        log.info("setpoint changed to %s degrees" % setpoint)
 
     def abort_run(self):
+        log.info("stopping smoke")
         self.reset()
-        self.save_automatic_restart_state()
+        self.save_restart_state()
 
     def update_runtime(self):
         runtime_delta = datetime.datetime.now() - self.start_time
         if runtime_delta.total_seconds() < 0:
             runtime_delta = datetime.timedelta(0)
-
         self.runtime = runtime_delta.total_seconds()
 
-    def update_target_temp(self):
-        self.target = self.profile.get_target_temperature(self.runtime)
+    def control(self):
+        pid = self.pid.compute(self.setpoint, self.current_temp(), self.time_step)
+        # clamp pid output to 0..1 (no active cooling on a smoker)
+        self.heat = sorted([0.0, pid, 1.0])[1]
+        self.output.heat(self.heat)
 
-    def reset_if_emergency(self):
-        '''reset if the temperature is way TOO HOT, or other critical errors detected'''
-        if (self.board.temp_sensor.temperature + config.thermocouple_offset >=
-            config.emergency_shutoff_temp):
+    def check_emergency(self):
+        if self.current_temp() >= config.emergency_shutoff_temp:
             log.info("emergency!!! temperature too high, shutting down")
             self.reset()
-
         if self.board.temp_sensor.noConnection:
             log.info("emergency!!! lost connection to thermocouple, shutting down")
             self.reset()
-
         if self.board.temp_sensor.unknownError:
             log.info("emergency!!! unknown thermocouple error, shutting down")
             self.reset()
-
         if self.board.temp_sensor.bad_percent > 30:
             log.info("emergency!!! too many errors in a short period, shutting down")
             self.reset()
 
-    def reset_if_schedule_ended(self):
-        if self.runtime > self.totaltime:
-            log.info("schedule ended, shutting down")
-            self.reset()
-
     def get_state(self):
-        state = {
-            'runtime': self.runtime,
-            'temperature': self.board.temp_sensor.temperature + config.thermocouple_offset,
-            'target': self.target,
+        return {
             'state': self.state,
-            'heat': self.heat,
-            'totaltime': self.totaltime,
-            'kwh_rate': config.kwh_rate,
-            'currency_type': config.currency_type,
-            'profile': self.profile.name if self.profile else None,
+            'temperature': round(self.current_temp(), 1),
+            'setpoint': self.setpoint,
+            'heat': round(self.heat * 100, 0),
+            'runtime': int(self.runtime),
+            'units': config.temp_scale,
             'pidstats': self.pid.pidstats,
+            'simulate': config.simulate,
+            'sim_speed': self.speed if config.simulate else None,
+            'wood_alert_threshold': config.wood_alert_threshold,
+            'wood_alert_cycles': config.wood_alert_cycles,
         }
-        return state
 
-    def save_state(self):
+    def save_restart_state(self):
+        if not config.automatic_restarts:
+            return
+        state = {'state': self.state, 'setpoint': self.setpoint, 'runtime': self.runtime}
         with open(config.automatic_restart_state_file, 'w', encoding='utf-8') as f:
-            json.dump(self.get_state(), f, ensure_ascii=False, indent=4)
+            json.dump(state, f)
 
-    def state_file_is_old(self):
-        '''returns True is state files is older than 15 mins default
-                   False if younger
-                   True if state file cannot be opened or does not exist
-        '''
-        if os.path.isfile(config.automatic_restart_state_file):
-            state_age = os.path.getmtime(config.automatic_restart_state_file)
-            now = time.time()
-            minutes = (now - state_age)/60
-            if(minutes <= config.automatic_restart_window):
-                return False
-        return True
-
-    def save_automatic_restart_state(self):
-        # only save state if the feature is enabled
-        if not config.automatic_restarts == True:
-            return False
-        self.save_state()
-
-    def should_i_automatic_restart(self):
-        # only automatic restart if the feature is enabled
-        if not config.automatic_restarts == True:
-            return False
-        if self.state_file_is_old():
-            # this log statement is too noisy.
-            #log.info("restart not possible. state file too old.")
-            return False
-        if os.path.isfile(config.automatic_restart_state_file):
-            with open(config.automatic_restart_state_file) as infile: d = json.load(infile)
-        else:
-            log.info("restart not possible. no state file found.")
-            return False
-        if d["state"] != "RUNNING":
-            # this log statement is too noisy.
-            #log.info("restart not possible. state = %s" % (d["state"]))
-            return False
-        return True
-
-    def automatic_restart(self):
-        with open(config.automatic_restart_state_file) as infile: d = json.load(infile)
-        startat = d["runtime"]/60
-        filename = "%s.json" % (d["profile"])
-        profile_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'storage','profiles',filename))
-
-        log.info("restarting profile = %s at minute = %d" % (profile_path,startat))
-        with open(profile_path) as infile:
-            profile_json = json.dumps(json.load(infile))
-        profile = Profile(profile_json)
-        self.run_profile(profile,startat=startat)
-        time.sleep(1)
-        self.ovenwatcher.record(profile)
-
-    def set_ovenwatcher(self,watcher):
-        log.info("ovenwatcher set in oven class")
-        self.ovenwatcher = watcher
+    def maybe_auto_restart(self):
+        if not config.automatic_restarts:
+            return
+        if not os.path.isfile(config.automatic_restart_state_file):
+            return
+        age_minutes = (time.time() - os.path.getmtime(config.automatic_restart_state_file)) / 60
+        if age_minutes > config.automatic_restart_window:
+            return
+        try:
+            with open(config.automatic_restart_state_file) as f:
+                state = json.load(f)
+        except ValueError:
+            return
+        if state.get('state') == 'RUNNING' and state.get('setpoint'):
+            log.info("automatic restart at setpoint %s" % state['setpoint'])
+            self.start_smoke(state['setpoint'])
 
     def run(self):
         while True:
             if self.state == "IDLE":
-                if self.should_i_automatic_restart() == True:
-                    self.automatic_restart()
+                self.maybe_auto_restart()
                 time.sleep(1)
                 continue
             if self.state == "RUNNING":
-                self.save_automatic_restart_state()
                 self.update_runtime()
-                self.update_target_temp()
-                self.heat_then_cool()
-                self.reset_if_emergency()
-                self.reset_if_schedule_ended()
+                self.control()
+                self.check_emergency()
+                self.save_restart_state()
+                time.sleep(self.time_step)
 
-class SimulatedOven(Oven):
 
+class SimulatedSmoker(Smoker):
+    '''same controller, but the physics are simulated instead of real hardware'''
     def __init__(self):
-        self.reset()
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self.time_step = config.sensor_time_wait
         self.board = BoardSimulated()
-
-        self.t_env = config.sim_t_env
-        self.c_heat = config.sim_c_heat
-        self.c_oven = config.sim_c_oven
-        self.p_heat = config.sim_p_heat
-        self.R_o_nocool = config.sim_R_o_nocool
-        self.R_ho_noair = config.sim_R_ho_noair
-        self.R_ho = self.R_ho_noair
-
-        # set temps to the temp of the surrounding environment
-        self.t = self.t_env # deg C temp of oven
-        self.t_h = self.t_env #deg C temp of heating element
-
-        # call parent init
-        Oven.__init__(self)
-
-        # start thread
-        self.start()
-        log.info("SimulatedOven started")
-
-    def heating_energy(self,pid):
-        # using pid here simulates the element being on for
-        # only part of the time_step
-        self.Q_h = self.p_heat * self.time_step * pid
-
-    def temp_changes(self):
-        #temperature change of heat element by heating
-        self.t_h += self.Q_h / self.c_heat
-
-        #energy flux heat_el -> oven
-        self.p_ho = (self.t_h - self.t) / self.R_ho
-
-        #temperature change of oven and heating element
-        self.t += self.p_ho * self.time_step / self.c_oven
-        self.t_h -= self.p_ho * self.time_step / self.c_heat
-
-        #temperature change of oven by cooling to environment
-        self.p_env = (self.t - self.t_env) / self.R_o_nocool
-        self.t -= self.p_env * self.time_step / self.c_oven
-        self.temperature = self.t
-        self.board.temp_sensor.temperature = self.t
-
-    def heat_then_cool(self):
-        pid = self.pid.compute(self.target,
-                               self.board.temp_sensor.temperature +
-                               config.thermocouple_offset)
-        heat_on = float(self.time_step * pid)
-        heat_off = float(self.time_step * (1 - pid))
-
-        self.heating_energy(pid)
-        self.temp_changes()
-
-        # self.heat is for the front end to display if the heat is on
-        self.heat = 0.0
-        if heat_on > 0:
-            self.heat = heat_on
-
-        log.info("simulation: -> %dW heater: %.0f -> %dW oven: %.0f -> %dW env"            % (int(self.p_heat * pid),
-            self.t_h,
-            int(self.p_ho),
-            self.t,
-            int(self.p_env)))
-
-        time_left = self.totaltime - self.runtime
-
-        try:
-            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
-                (self.pid.pidstats['ispoint'],
-                self.pid.pidstats['setpoint'],
-                self.pid.pidstats['err'],
-                self.pid.pidstats['pid'],
-                self.pid.pidstats['p'],
-                self.pid.pidstats['i'],
-                self.pid.pidstats['d'],
-                heat_on,
-                heat_off,
-                self.runtime,
-                self.totaltime,
-                time_left))
-        except KeyError:
-            pass
-
-        # we don't actually spend time heating & cooling during
-        # a simulation, so sleep.
-        time.sleep(self.time_step)
-
-
-class RealOven(Oven):
-
-    def __init__(self):
-        self.board = Board()
         self.output = Output()
+        self.speed = config.sim_speed
         self.reset()
-
-        # call parent init
-        Oven.__init__(self)
-
-        # start thread
         self.start()
 
-    def reset(self):
-        super().reset()
-        self.output.cool(0)
+    def control(self):
+        pid = self.pid.compute(self.setpoint, self.current_temp(), self.time_step * self.speed)
+        self.heat = sorted([0.0, pid, 1.0])[1]
+        self.board.step(self.heat, self.time_step * self.speed)
+        self.log_status()
 
-    def heat_then_cool(self):
-        pid = self.pid.compute(self.target,
-                               self.board.temp_sensor.temperature +
-                               config.thermocouple_offset)
-        heat_on = pid
-        heat_off = 0
-
-        # self.heat is for the front end to display if the heat is on
-        self.heat = pid
-        
-        if self.heat > 1 or self.heat < 0:
-            self.output.heat(0)
-        else:
-            self.output.heat(heat_on)
-
-        time_left = self.totaltime - self.runtime
-
-        try:
-            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
-                (self.pid.pidstats['ispoint'],
-                self.pid.pidstats['setpoint'],
-                self.pid.pidstats['err'],
-                self.pid.pidstats['pid'],
-                self.pid.pidstats['p'],
-                self.pid.pidstats['i'],
-                self.pid.pidstats['d'],
-                heat_on,
-                heat_off,
-                self.runtime,
-                self.totaltime,
-                time_left))
-        except KeyError:
-            pass
-
-
-class Profile():
-    def __init__(self, json_data):
-        obj = json.loads(json_data)
-        self.name = obj["name"]
-        self.data = sorted(obj["data"])
-
-    def get_duration(self):
-        return max([t for (t, x) in self.data])
-
-    def get_surrounding_points(self, time):
-        if time > self.get_duration():
-            return (None, None)
-
-        prev_point = None
-        next_point = None
-
-        for i in range(len(self.data)):
-            if time < self.data[i][0]:
-                prev_point = self.data[i-1]
-                next_point = self.data[i]
-                break
-
-        return (prev_point, next_point)
-
-    def get_target_temperature(self, time):
-        if time > self.get_duration():
-            return 0
-
-        (prev_point, next_point) = self.get_surrounding_points(time)
-
-        incl = float(next_point[1] - prev_point[1]) / float(next_point[0] - prev_point[0])
-        temp = prev_point[1] + (time - prev_point[0]) * incl
-        return temp
+    def log_status(self):
+        p = self.pid.pidstats
+        log.info("temp=%.1f, target=%.1f, error=%.1f, pid=%.2f, flapper=%.0f%%, run_time=%ds" %
+                 (p['ispoint'], p['setpoint'], p['err'], p['pid'],
+                  self.heat * 100, self.runtime))
 
 
 class PID():
-
     def __init__(self, ki=1, kp=1, kd=1):
         self.ki = ki
         self.kp = kp
         self.kd = kd
-        self.lastNow = datetime.datetime.now()
         self.iterm = 0
         self.lastErr = 0
         self.pidstats = {}
 
-    # FIX - this was using a really small window where the PID control
-    # takes effect from -1 to 1. I changed this to various numbers and
-    # settled on -50 to 50 and then divide by 50 at the end. This results
-    # in a larger PID control window and much more accurate control...
-    # instead of what used to be binary on/off control.
-    def compute(self, setpoint, ispoint):
+    def compute(self, setpoint, ispoint, dt):
         now = datetime.datetime.now()
-        timeDelta = (now - self.lastNow).total_seconds()
+        timeDelta = dt
 
         window_size = 100
 
         error = float(setpoint - ispoint)
-        # this removes the need for config.stop_integral_windup
-        # it turns the controller into a binary on/off switch
-        # any time it's outside the window defined by
-        # config.pid_control_window
+        # outside the control window the controller acts like a binary
+        # switch: fully open when too cold, fully closed when too hot.
+        # integral only accumulates inside the window (no windup).
         icomp = 0
         output = 0
         out4logs = 0
         dErr = 0
         if error < (-1 * config.pid_control_window):
-            log.info("kiln outside pid control window, max cooling")
+            log.debug("smoker outside pid control window, max cooling")
             output = 0
-            # it is possible to set self.iterm=0 here and also below
-            # but I dont think its needed
         elif error > (1 * config.pid_control_window):
-            log.info("kiln outside pid control window, max heating")
+            log.debug("smoker outside pid control window, max heating")
             output = 1
         else:
-            icomp = (error * timeDelta * (1/self.ki))
-            self.iterm += (error * timeDelta * (1/self.ki))
+            icomp = (error * timeDelta * (1 / self.ki))
+            self.iterm += (error * timeDelta * (1 / self.ki))
             dErr = (error - self.lastErr) / timeDelta
             output = self.kp * error + self.iterm + self.kd * dErr
             output = sorted([-1 * window_size, output, window_size])[1]
@@ -624,7 +431,6 @@ class PID():
             output = float(output / window_size)
 
         self.lastErr = error
-        self.lastNow = now
 
         # not actively cooling, so
         if output < 0:
