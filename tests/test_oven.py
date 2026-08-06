@@ -208,9 +208,15 @@ class TestSimulatedSmoker:
         t2 = run_at_speed(oven.SimulatedSmoker(), 2, 5)  # 5 x 10s = 50s
         assert t2 == pytest.approx(t1, abs=0.2)
 
-    def test_check_emergency_when_too_hot(self, sim):
+    def test_no_temperature_emergency_shutoff(self, sim):
         sim.start_smoke(250)
-        sim.board.temp_sensor.temperature = config.emergency_shutoff_temp + 100
+        sim.board.temp_sensor.temperature = 900
+        sim.check_emergency()
+        assert sim.state == "RUNNING"
+
+    def test_check_emergency_when_sensor_lost(self, sim):
+        sim.start_smoke(250)
+        sim.board.temp_sensor.noConnection = True
         sim.check_emergency()
         assert sim.state == "IDLE"
 

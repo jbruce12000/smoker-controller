@@ -298,9 +298,9 @@ class Smoker(threading.Thread):
         self.output.heat(self.heat)
 
     def check_emergency(self):
-        if self.current_temp() >= config.emergency_shutoff_temp:
-            log.info("emergency!!! temperature too high, shutting down")
-            self.reset()
+        # no temperature emergency shutoff for a smoker - the PID and the
+        # flapper are the only control you get, so a hot fire is expected.
+        # but a broken thermocouple means no control at all, so stop on that.
         if self.board.temp_sensor.noConnection:
             log.info("emergency!!! lost connection to thermocouple, shutting down")
             self.reset()

@@ -24,11 +24,6 @@ min_setpoint = 85
 max_setpoint = 500
 default_setpoint = 250
 
-# If the temperature reaches or exceeds this value the controller
-# shuts down and closes the flapper. This does not replace watching
-# your smoker.
-emergency_shutoff_temp = 600
-
 # Compensate a thermocouple that reads high or low (e.g. -4 if it reads
 # 36F in ice water).
 thermocouple_offset = 0
