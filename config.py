@@ -82,9 +82,9 @@ honour_theromocouple_short_errors = False
 #   These control how aggressively the flapper reacts to the difference
 #   between the current temperature and the target. Note that pid_ki is
 #   inverted - a smaller number means more integral action.
-pid_kp = 10   # Proportional
-pid_ki = 100  # Integral
-pid_kd = 50   # Derivative
+pid_kp = 13.889
+pid_ki = 71.999  
+pid_kd = 0.000
 
 # The window (in degrees) around the target within which PID control
 # takes place. Outside this window the flapper is fully open (too cold)

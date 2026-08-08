@@ -36,7 +36,7 @@ except ImportError:
     print("Could not import config.py - copy config.py.EXAMPLE to config.py first.")
     sys.exit(1)
 
-from oven import Smoker, SimulatedSmoker
+from oven import BoardSimulated, SimulatedSmoker, Smoker
 
 log = logging.getLogger("zn-tuner")
 
@@ -145,7 +145,10 @@ class ReactionCurveTuner:
     def __init__(self, smoker, open1, open2, time_step, stability=1.0,
                  noise=0.5, settle_window=300.0, max_wait=7200.0, max_temp=None):
         self.smoker = smoker
-        self.simulated = isinstance(smoker, SimulatedSmoker)
+        # the model is stepped by hand (and time is instant) whenever the
+        # board is simulated, even if the smoker class says otherwise (a
+        # real Smoker falls back to a simulated board when GPIO init fails)
+        self.simulated = isinstance(smoker.board, BoardSimulated)
         self.open1 = open1
         self.open2 = open2
         self.time_step = time_step
@@ -157,6 +160,12 @@ class ReactionCurveTuner:
             (260.0 if config.temp_scale == 'c' else 500.0)
         self.elapsed = 0.0
         self.samples = []
+        if self.simulated:
+            log.info("simulated model detected: advancing %.0f model-seconds "
+                     "per step, no wall-clock waits" % self.time_step)
+        else:
+            log.info("real hardware detected: waiting %.0f wall-clock seconds "
+                     "per sample" % self.time_step)
 
     def set_flapper(self, openness):
         '''openness is 0 (closed) to 1 (fully open); the only output the
@@ -196,7 +205,11 @@ class ReactionCurveTuner:
                 return steady
             if not self.simulated:
                 time.sleep(self.time_step)
-        raise RuntimeError("%s never settled within %.0f seconds" % (label, self.max_wait))
+        raise RuntimeError(
+            "%s never settled within %.0f seconds "
+            "(last temperature %.1f %s; try --max-wait to give it longer or "
+            "--settle-window if the temperature is just wandering)"
+            % (label, self.max_wait, self.read_temp(), _unit()))
 
     def run(self):
         '''run the whole reaction-curve test. returns (y1, y2, K, L, T).'''
@@ -272,6 +285,17 @@ def report(y1, y2, K, L, T, method="critically-damped"):
         print("    delay-free simulation; the real smoker will have real dead time.")
 
 
+def choose_smoker(hardware=False, simulate=None):
+    '''pick the smoker to tune, mirroring the controller itself: by
+    default config.simulate decides, with --hardware / --simulate as
+    overrides.'''
+    if hardware:
+        return Smoker()
+    if simulate or config.simulate:
+        return SimulatedSmoker()
+    return Smoker()
+
+
 def parse_args():
     p = argparse.ArgumentParser(description="PID tuner for the smoker")
     p.add_argument('--method', choices=('critically-damped', 'zn'),
@@ -279,13 +303,17 @@ def parse_args():
                    help="tuning rule: critically damped (default, no overshoot) "
                         "or aggressive Ziegler-Nichols")
     p.add_argument('--hardware', action='store_true',
-                   help="tune the real smoker instead of the simulation")
+                   help="tune the real smoker even if config.simulate is True")
+    p.add_argument('--simulate', action='store_true',
+                   help="tune the simulation even if config.simulate is False")
     p.add_argument('--open1', type=float, default=0.4,
                    help="flapper openness for the baseline (default 0.4)")
     p.add_argument('--open2', type=float, default=0.6,
                    help="flapper openness for the step (default 0.6)")
     p.add_argument('--max-temp', type=float, default=None,
                    help="safety shutdown temperature (default 500F / 260C)")
+    p.add_argument('--max-wait', type=float, default=7200.0,
+                   help="max seconds for a phase to settle (default 7200)")
     p.add_argument('--settle-window', type=float, default=300.0,
                    help="seconds of flat temperature required before a phase "
                         "counts as settled (default 300)")
@@ -306,14 +334,32 @@ def main():
         print("open1 and open2 must differ (that's the step)")
         sys.exit(1)
 
-    if args.hardware:
-        print("\nWARNING: tuning the real smoker.")
+    try:
+        if args.hardware:
+            smoker = Smoker()
+            simulated = False
+            why = "forced with --hardware"
+        elif args.simulate:
+            smoker = SimulatedSmoker()
+            simulated = True
+            why = "forced with --simulate"
+        else:
+            simulated = config.simulate
+            why = "config.simulate = %s" % config.simulate
+            smoker = SimulatedSmoker() if simulated else Smoker()
+    except Exception as e:
+        print("\nCould not set up the smoker: %s" % e)
+        print("This usually means simulate = False in config.py but the")
+        print("hardware libraries are not installed. Try:")
+        print("    python3 zn-tuner.py --simulate")
+        sys.exit(1)
+
+    if simulated:
+        print("\nTuning the simulated smoker (no hardware needed, %s)." % why)
+    else:
+        print("\nWARNING: tuning the real smoker (%s)." % why)
         print("Make sure the fire is burning and keep an eye on it - the")
         print("tuner will hold the flapper open at %.2f for a while." % args.open2)
-        smoker = Smoker()
-    else:
-        print("\nTuning the simulated smoker (no hardware needed).")
-        smoker = SimulatedSmoker()
 
     # take over: the tuner owns the flapper, so the controller must not run
     config.automatic_restarts = False
@@ -322,6 +368,7 @@ def main():
     tuner = ReactionCurveTuner(smoker, args.open1, args.open2,
                                time_step=smoker.time_step,
                                settle_window=args.settle_window,
+                               max_wait=args.max_wait,
                                max_temp=args.max_temp)
     try:
         y1, y2, K, L, T = tuner.run()

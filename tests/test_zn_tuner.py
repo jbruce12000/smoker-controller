@@ -172,6 +172,65 @@ class TestIsSteady:
         assert not zt.is_steady([], window=300, tolerance=1.0)
 
 
+class TestChooseSmoker:
+    '''the tuner follows config.simulate by default, like the controller'''
+
+    def test_default_follows_config_simulate(self, monkeypatch):
+        fake_sim, fake_real = object(), object()
+        monkeypatch.setattr(zt, 'SimulatedSmoker', lambda: fake_sim)
+        monkeypatch.setattr(zt, 'Smoker', lambda: fake_real)
+        monkeypatch.setattr(config, 'simulate', True)
+        assert zt.choose_smoker() is fake_sim
+        monkeypatch.setattr(config, 'simulate', False)
+        assert zt.choose_smoker() is fake_real
+
+    def test_hardware_overrides_config(self, monkeypatch):
+        fake_sim, fake_real = object(), object()
+        monkeypatch.setattr(zt, 'SimulatedSmoker', lambda: fake_sim)
+        monkeypatch.setattr(zt, 'Smoker', lambda: fake_real)
+        monkeypatch.setattr(config, 'simulate', True)
+        assert zt.choose_smoker(hardware=True) is fake_real
+
+    def test_simulate_overrides_config(self, monkeypatch):
+        fake_sim, fake_real = object(), object()
+        monkeypatch.setattr(zt, 'SimulatedSmoker', lambda: fake_sim)
+        monkeypatch.setattr(zt, 'Smoker', lambda: fake_real)
+        monkeypatch.setattr(config, 'simulate', False)
+        assert zt.choose_smoker(simulate=True) is fake_sim
+
+
+class TestSimulationDetection:
+    '''simulation is decided by the board, not the smoker class'''
+
+    def test_simulated_board(self):
+        smoker = type('FakeSmoker', (), {})()
+        smoker.board = oven.BoardSimulated()
+        tuner = zt.ReactionCurveTuner(smoker, 0.4, 0.6, time_step=5)
+        assert tuner.simulated is True
+
+    def test_real_board(self):
+        smoker = type('FakeSmoker', (), {})()
+        smoker.board = type('FakeBoard', (), {})()
+        tuner = zt.ReactionCurveTuner(smoker, 0.4, 0.6, time_step=5)
+        assert tuner.simulated is False
+
+    def test_settle_times_out_with_diagnostic(self):
+        class FakeSmoker:
+            def __init__(self):
+                self.board = oven.BoardSimulated()
+                self.heat = 0
+                self.output = type('Out', (), {'heat': lambda self, x: None})()
+
+            def current_temp(self):
+                return self.board.temp_sensor.temperature
+
+        tuner = zt.ReactionCurveTuner(FakeSmoker(), 0.4, 0.6, time_step=5,
+                                      max_wait=10, settle_window=300)
+        with pytest.raises(RuntimeError) as exc:
+            tuner.settle(0.4, "baseline")
+        assert "never settled" in str(exc.value)
+
+
 class TestRecent:
     def test_keeps_only_last_window(self):
         samples = [(0, 1.0), (10, 2.0), (20, 3.0), (30, 4.0)]

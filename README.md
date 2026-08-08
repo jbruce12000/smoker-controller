@@ -104,14 +104,57 @@ The web interface shows the live temperature, target, and error readouts, plus c
 
 ### PID tuning
 
-`zn-tuner.py` runs an open-loop "process reaction curve" test and prints PID gains to copy into config.py. It only moves the flapper (openness 0-1); it never changes the setpoint or stops your fire.
+`zn-tuner.py` tunes the PID controller automatically. It runs an open-loop "process reaction curve" test:
 
-    $ python3 zn-tuner.py              # against the simulation (fast)
-    $ python3 zn-tuner.py --hardware   # against the real smoker (slow - supervise it)
+1. hold the flapper at a fixed opening (default 40%) until the temperature settles
+2. step the flapper open further (default 60%) and record the temperature response
+3. fit the process gain `K`, dead time `L`, and time constant `T` to the S-shaped response
+4. print PID gains to copy into config.py
 
-Run it on the sim first to see how it works, then on the Pi with the fire burning. The tuner holds the flapper at a fixed opening until the temperature settles, steps it open further, fits the dead time and time constant to the S-shaped response, and prints `pid_kp`, `pid_ki`, and `pid_kd` in this project's PID convention.
+The tuner only ever moves the flapper (openness 0-1). It never changes the setpoint, stops your fire, or touches anything else.
 
-By default it prints **critically damped** (lambda) gains, which target no overshoot. Add `--method zn` for the aggressive Ziegler-Nichols gains (~25% overshoot) instead.
+Try it on the simulation first:
+
+    $ python3 zn-tuner.py                  # simulated smoker, critically damped
+    $ python3 zn-tuner.py --method zn      # aggressive Ziegler-Nichols gains
+    $ python3 zn-tuner.py --open1 0.3 --open2 0.5   # pick your own step
+
+Then, with the fire burning, run it on the Pi against the real smoker:
+
+    $ python3 zn-tuner.py --hardware
+
+Keep an eye on it - it holds the flapper open at the step value for a while, and it shuts down above a safety limit (500F / 260C by default).
+
+#### Output
+
+The report shows the fitted reaction curve plus the gains to put in config.py:
+
+    pid_kp = 13.889   # proportional
+    pid_ki = 72.000   # integral time, seconds (smaller = stronger integral)
+    pid_kd = 0.000    # derivative
+
+Copy those three lines into the PID parameters section of config.py and restart the controller.
+
+By default the tuner prints **critically damped** (lambda) gains, which target no overshoot. Add `--method zn` for the aggressive Ziegler-Nichols gains (~25% overshoot) instead. If you want to fine-tune from there by hand, see [docs/pid_tuning.md](docs/pid_tuning.md).
+
+The tuner follows `config.simulate`: with `simulate = True` it tunes the simulation, with `simulate = False` it tunes the real smoker. Override either way with the flags below.
+
+#### Options
+
+  * `--hardware` - tune the real smoker even if `config.simulate` is True
+  * `--simulate` - tune the simulation even if `config.simulate` is False
+  * `--open1` / `--open2` - flapper openness for the baseline and the step (default 0.4 / 0.6)
+  * `--method` - `critically-damped` (default) or `zn`
+  * `--max-temp` - safety shutdown temperature (default 500F / 260C)
+  * `--max-wait` - max seconds for a phase to settle before giving up (default 7200)
+  * `--settle-window` - seconds of flat temperature before a phase counts as settled (default 300)
+  * `--verbose` - debug logging
+
+#### Notes
+
+  * On the simulation, dead time resolves to the sensor sampling floor, so the sim's gains are a lower bound on the real dead time.
+  * Rerun the tuner after any change to the firebox, flapper, thermocouple position, or duty cycle (`sensor_time_wait`) - all of those change `K`, `L`, and `T`.
+  * The tuner reads the thermocouple just like the controller, so leave `thermocouple_offset` and `temp_scale` set the way you run it normally.
 
 ### Running the tests
 
