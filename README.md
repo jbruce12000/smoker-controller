@@ -102,6 +102,17 @@ The web interface shows the live temperature, target, and error readouts, plus c
   * `POST /api` with `{"cmd": "run", "setpoint": 250}` - start a smoke
   * `POST /api` with `{"cmd": "stop"}` - stop
 
+### PID tuning
+
+`zn-tuner.py` runs an open-loop "process reaction curve" test and prints PID gains to copy into config.py. It only moves the flapper (openness 0-1); it never changes the setpoint or stops your fire.
+
+    $ python3 zn-tuner.py              # against the simulation (fast)
+    $ python3 zn-tuner.py --hardware   # against the real smoker (slow - supervise it)
+
+Run it on the sim first to see how it works, then on the Pi with the fire burning. The tuner holds the flapper at a fixed opening until the temperature settles, steps it open further, fits the dead time and time constant to the S-shaped response, and prints `pid_kp`, `pid_ki`, and `pid_kd` in this project's PID convention.
+
+By default it prints **critically damped** (lambda) gains, which target no overshoot. Add `--method zn` for the aggressive Ziegler-Nichols gains (~25% overshoot) instead.
+
 ### Running the tests
 
 The controller logic (PID, simulation model, watcher) and the web routes are covered by pytest:
