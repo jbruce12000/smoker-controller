@@ -145,8 +145,8 @@ def to_config_gains(Kp, Ti, Td):
 
 
 class ReactionCurveTuner:
-    def __init__(self, smoker, open1, open2, time_step, stability=1.0,
-                 noise=0.5, settle_window=300.0, max_wait=7200.0, max_temp=None):
+    def __init__(self, smoker, open1, open2, time_step, stability=2.0,
+                 noise=0.5, settle_window=60.0, max_wait=7200.0, max_temp=None):
         self.smoker = smoker
         # the model is stepped by hand (and time is instant) whenever the
         # board is simulated, even if the smoker class says otherwise (a
@@ -347,9 +347,12 @@ def parse_args():
                    help="safety shutdown temperature (default 500F / 260C)")
     p.add_argument('--max-wait', type=float, default=7200.0,
                    help="max seconds for a phase to settle (default 7200)")
-    p.add_argument('--settle-window', type=float, default=300.0,
-                   help="seconds of flat temperature required before a phase "
-                        "counts as settled (default 300)")
+    p.add_argument('--settle-window', type=float, default=60.0,
+                   help="seconds the temperature must stay flat before a phase "
+                        "counts as settled (default 60)")
+    p.add_argument('--stability', type=float, default=2.0,
+                   help="max temperature swing (degrees) within the settle "
+                        "window to count as settled (default 2)")
     p.add_argument('--verbose', action='store_true', help="debug logging")
     return p.parse_args()
 
@@ -411,6 +414,7 @@ def main():
 
     tuner = ReactionCurveTuner(smoker, args.open1, args.open2,
                                time_step=smoker.time_step,
+                               stability=args.stability,
                                settle_window=args.settle_window,
                                max_wait=args.max_wait,
                                max_temp=args.max_temp)
