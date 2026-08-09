@@ -231,6 +231,43 @@ class TestSimulationDetection:
         assert "never settled" in str(exc.value)
 
 
+class TestNoControllerInterference:
+    '''the tuner disables auto-restart before the smoker thread starts, so a
+    leftover RUNNING state file cannot auto-restart the controller and make
+    it fight the tuner for the flapper (regression: oven.py moved the flapper
+    during the tune).'''
+
+    def _fresh_running_state(self, tmp_path, monkeypatch):
+        state_file = tmp_path / 'state.json'
+        state_file.write_text('{"state": "RUNNING", "setpoint": 250, '
+                              '"runtime": 3600}')
+        monkeypatch.setattr(config, 'automatic_restart_state_file',
+                            str(state_file))
+        monkeypatch.setattr(config, 'automatic_restart_window', 60)
+
+    def test_auto_restart_fires_when_enabled(self, tmp_path, monkeypatch):
+        self._fresh_running_state(tmp_path, monkeypatch)
+        monkeypatch.setattr(config, 'automatic_restarts', True)
+        smoker = oven.SimulatedSmoker()
+        smoker.maybe_auto_restart()
+        assert smoker.state == "RUNNING"
+
+    def test_tuner_flag_suppresses_auto_restart(self, tmp_path, monkeypatch):
+        self._fresh_running_state(tmp_path, monkeypatch)
+        monkeypatch.setattr(config, 'automatic_restarts', False)
+        smoker = oven.SimulatedSmoker()
+        smoker.maybe_auto_restart()
+        assert smoker.state == "IDLE"
+        assert smoker.heat == 0
+
+    def test_warn_if_smoke_in_progress_quiet_when_none(self, tmp_path,
+                                                       monkeypatch):
+        self._fresh_running_state(tmp_path, monkeypatch)
+        state_file = tmp_path / 'state.json'
+        state_file.write_text('{"state": "IDLE"}')
+        assert zt.warn_if_smoke_in_progress() is None
+
+
 class TestRecent:
     def test_keeps_only_last_window(self):
         samples = [(0, 1.0), (10, 2.0), (20, 3.0), (30, 4.0)]

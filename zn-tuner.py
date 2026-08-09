@@ -23,6 +23,7 @@ Results are printed; copy pid_kp/pid_ki/pid_kd into config.py.
 '''
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -296,6 +297,30 @@ def choose_smoker(hardware=False, simulate=None):
     return Smoker()
 
 
+def warn_if_smoke_in_progress():
+    '''warn if another controller (e.g. the web server) has a smoke in
+    progress - it would keep moving the flapper during the tune.'''
+    state_file = config.automatic_restart_state_file
+    if not os.path.isfile(state_file):
+        return
+    age_minutes = (time.time() - os.path.getmtime(state_file)) / 60
+    if age_minutes > config.automatic_restart_window:
+        return
+    try:
+        with open(state_file) as f:
+            state = json.load(f)
+    except (ValueError, IOError):
+        return
+    if state.get('state') == 'RUNNING':
+        print("\nWARNING: %s says a smoke is in progress (setpoint %s, "
+              "restarting within %d minutes)."
+              % (state_file, state.get('setpoint'),
+                 config.automatic_restart_window))
+        print("If the web controller is running, stop it first - it will keep")
+        print("moving the flapper and corrupt the tune. The tuner will proceed,")
+        print("but the results are only valid if nothing else touches the smoker.")
+
+
 def parse_args():
     p = argparse.ArgumentParser(description="PID tuner for the smoker")
     p.add_argument('--method', choices=('critically-damped', 'zn'),
@@ -334,6 +359,12 @@ def main():
         print("open1 and open2 must differ (that's the step)")
         sys.exit(1)
 
+    # take over: the tuner owns the flapper, so the controller must not run.
+    # disable auto-restart BEFORE the smoker thread starts, otherwise a fresh
+    # state.json can auto-restart a smoke and the controller's control() will
+    # keep moving the flapper every cycle, fighting the tuner's constant hold.
+    config.automatic_restarts = False
+
     try:
         if args.hardware:
             smoker = Smoker()
@@ -354,6 +385,9 @@ def main():
         print("    python3 zn-tuner.py --simulate")
         sys.exit(1)
 
+    # warn about another controller (e.g. the web server) driving the flapper
+    warn_if_smoke_in_progress()
+
     if simulated:
         print("\nTuning the simulated smoker (no hardware needed, %s)." % why)
     else:
@@ -361,9 +395,11 @@ def main():
         print("Make sure the fire is burning and keep an eye on it - the")
         print("tuner will hold the flapper open at %.2f for a while." % args.open2)
 
-    # take over: the tuner owns the flapper, so the controller must not run
-    config.automatic_restarts = False
     smoker.abort_run()
+    if smoker.state != "IDLE":
+        log.warning("controller thread is still running (state %s), stopping it"
+                    % smoker.state)
+        smoker.abort_run()
 
     tuner = ReactionCurveTuner(smoker, args.open1, args.open2,
                                time_step=smoker.time_step,
