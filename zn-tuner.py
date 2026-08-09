@@ -41,6 +41,8 @@ from oven import BoardSimulated, SimulatedSmoker, Smoker
 
 log = logging.getLogger("zn-tuner")
 
+SAMPLE_PRINT_INTERVAL = 15  # seconds between live temperature lines on stdout
+
 
 def recent(samples, window):
     '''the samples that fell within the last `window` seconds. samples is
@@ -188,12 +190,18 @@ class ReactionCurveTuner:
         returning the steady state temperature.'''
         self.set_flapper(openness)
         phase_start = self.elapsed
+        last_print = self.elapsed
         while self.elapsed - phase_start < self.max_wait:
             dt = self.time_step
             self.step_model(dt)
             self.elapsed += dt
             temp = self.read_temp()
             self.samples.append((self.elapsed, temp))
+            if self.elapsed - last_print >= SAMPLE_PRINT_INTERVAL:
+                last_print = self.elapsed
+                print("  [%s] %7s  %6.1f %s  flapper %2.0f%%"
+                      % (label, _fmt_seconds(self.elapsed), temp, _unit(),
+                         openness * 100), flush=True)
             if temp > self.max_temp:
                 raise RuntimeError(
                     "temperature %.1f exceeded the safety limit %.1f - aborting"
